@@ -12,7 +12,7 @@ import Instruments.Guitar as Guitar
 import Instruments.Ukulele as Ukulele
 import List exposing (concat, filterMap, map, singleton)
 import List.Extra exposing (uniqueBy)
-import Parser exposing (DeadEnd, deadEndsToString)
+import Parser
 import Shift exposing (Shift)
 
 
@@ -33,7 +33,7 @@ type alias RawSheet =
 
 
 type alias ParsedLine =
-    Result (List DeadEnd) (List Token)
+    Result (List Parser.DeadEnd) (List Token)
 
 
 type alias ParsedSheet =
@@ -41,7 +41,11 @@ type alias ParsedSheet =
 
 
 type alias Model =
-    { input : RawSheet, output : ParsedSheet, shift : Shift, instrument : Instrument }
+    { input : RawSheet
+    , output : ParsedSheet
+    , shift : Shift
+    , instrument : Instrument
+    }
 
 
 transpose : Shift -> Chord -> Chord
@@ -132,7 +136,7 @@ viewLine sh line =
             div [] (map (viewToken sh) tokens)
 
         Err e ->
-            span [] [ text (deadEndsToString e) ]
+            span [] [ text (Parser.deadEndsToString e) ]
 
 
 viewToken : Shift -> Token -> Html Msg
@@ -171,14 +175,21 @@ viewChart instrument chord =
 
 viewInstrumentOpt : Instrument -> Html Msg
 viewInstrumentOpt i =
-    option [ value (Instrument.toString i) ] [ text (capitalize (Instrument.toString i)) ]
+    option
+        [ value (Instrument.toString i) ]
+        [ text (capitalize (Instrument.toString i)) ]
 
 
 viewCharts : Model -> List (Html Msg)
 viewCharts { output, shift, instrument } =
     output
         |> sheetToChords
-        |> map (transpose shift >> viewChart instrument >> singleton >> div [ class "chart" ])
+        |> map
+            (transpose shift
+                >> viewChart instrument
+                >> singleton
+                >> div [ class "chart" ]
+            )
 
 
 renderIfInputNonEmpty : Model -> Html Msg -> Html Msg
