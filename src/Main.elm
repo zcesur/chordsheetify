@@ -4,7 +4,7 @@ import Browser
 import Chords exposing (Chord(..), Token(..))
 import Chords.Chart as Chart
 import Chords.Note as Note exposing (Note)
-import Html exposing (Html, button, div, option, select, span, strong, text, textarea)
+import Html exposing (Html, button, div, node, option, section, select, span, strong, text, textarea)
 import Html.Attributes exposing (class, classList, placeholder, value)
 import Html.Events exposing (onClick, onInput)
 import Instrument exposing (Instrument(..))
@@ -204,7 +204,8 @@ viewOptions =
 
 view : Model -> Html Msg
 view model =
-    div [ class "container" ]
+    node "main"
+        [ class "container" ]
         (concat
             [ [ textarea
                     [ classList [ ( "sheet-input", True ), ( "has-content", inputNonEmpty model ) ]
@@ -215,9 +216,9 @@ view model =
                     []
               ]
             , map (renderIfInputNonEmpty model)
-                [ div [ class "row" ] viewOptions
-                , div [ class "charts" ] (viewCharts model)
-                , div [ class "sheet-output" ] (map (viewLine model.shift) model.output)
+                [ section [ class "row" ] viewOptions
+                , section [ class "charts" ] (viewCharts model)
+                , section [ class "sheet-output" ] (map (viewLine model.shift) model.output)
                 ]
             ]
         )
