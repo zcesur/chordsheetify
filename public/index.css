@@ -1,0 +1,6 @@
+.sheet-input {
+  min-height: 25vh;
+}
+.sheet-output {
+  white-space: pre-wrap;
+}
