@@ -10,7 +10,7 @@ import Html.Events exposing (onClick, onInput)
 import Instrument exposing (Instrument(..))
 import Instruments.Guitar as Guitar
 import Instruments.Ukulele as Ukulele
-import List exposing (concatMap, filterMap, map, singleton)
+import List exposing (concat, filterMap, map, singleton)
 import List.Extra exposing (uniqueBy)
 import Parser exposing (DeadEnd, deadEndsToString)
 import Shift exposing (Shift)
@@ -71,7 +71,12 @@ lineToChords line =
 
 sheetToChords : ParsedSheet -> List Chord
 sheetToChords =
-    concatMap lineToChords >> uniqueBy Chords.toString
+    map lineToChords >> concat >> uniqueBy Chords.toString
+
+
+inputNonEmpty : Model -> Bool
+inputNonEmpty { input } =
+    String.trim input /= ""
 
 
 init : Model
@@ -170,10 +175,52 @@ viewInstrumentOpt i =
 
 
 viewCharts : Model -> List (Html Msg)
-viewCharts model =
-    model.output
+viewCharts { output, shift, instrument } =
+    output
         |> sheetToChords
-        |> map (transpose model.shift >> viewChart model.instrument >> singleton >> div [ class "chart" ])
+        |> map (transpose shift >> viewChart instrument >> singleton >> div [ class "chart" ])
+
+
+renderIfInputNonEmpty : Model -> Html Msg -> Html Msg
+renderIfInputNonEmpty model html =
+    if inputNonEmpty model then
+        html
+
+    else
+        text ""
+
+
+viewOptions : List (Html Msg)
+viewOptions =
+    [ div [ class "column column-33 column-offset-33" ] [ select [ onInput SetInstrument ] (map viewInstrumentOpt [ Guitar, Ukulele ]) ]
+    , div [ class "column column-33" ]
+        [ div [ class "button-group" ]
+            [ button [ class "button-outline", onClick Decrement ] [ text "-1" ]
+            , button [ class "button-outline", onClick Increment ] [ text "+1" ]
+            ]
+        ]
+    ]
+
+
+view : Model -> Html Msg
+view model =
+    div [ class "container" ]
+        (concat
+            [ [ textarea
+                    [ classList [ ( "sheet-input", True ), ( "has-content", inputNonEmpty model ) ]
+                    , placeholder textAreaPlaceholder
+                    , value model.input
+                    , onInput SetSheet
+                    ]
+                    []
+              ]
+            , map (renderIfInputNonEmpty model)
+                [ div [ class "row" ] viewOptions
+                , div [ class "charts" ] (viewCharts model)
+                , div [ class "sheet-output" ] (map (viewLine model.shift) model.output)
+                ]
+            ]
+        )
 
 
 textAreaPlaceholder : String
@@ -193,27 +240,3 @@ Gonna rise up, Bringing back holes in dark memories
       [D]         [G]                [C]        [C]    [C]   [C6]
 Gonna rise up, Turning mistakes into gold
 """
-
-
-view : Model -> Html Msg
-view model =
-    div [ class "container" ]
-        [ textarea
-            [ classList [ ( "sheet-input", True ), ( "has-content", String.trim model.input /= "" ) ]
-            , placeholder textAreaPlaceholder
-            , value model.input
-            , onInput SetSheet
-            ]
-            []
-        , div [ class "row" ]
-            [ div [ class "column column-33 column-offset-33" ] [ select [ onInput SetInstrument ] (map viewInstrumentOpt [ Guitar, Ukulele ]) ]
-            , div [ class "column column-33" ]
-                [ div [ class "button-group" ]
-                    [ button [ class "button-outline", onClick Decrement ] [ text "-1" ]
-                    , button [ class "button-outline", onClick Increment ] [ text "+1" ]
-                    ]
-                ]
-            ]
-        , div [ class "charts" ] (viewCharts model)
-        , div [ class "sheet-output" ] (map (viewLine model.shift) model.output)
-        ]
