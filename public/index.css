@@ -1,6 +1,16 @@
 .sheet-input {
   min-height: 25vh;
 }
+
 .sheet-output {
   white-space: pre-wrap;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center;
+}
+
+.button-group > button {
+  margin: 0 8px;
 }

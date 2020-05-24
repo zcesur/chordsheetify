@@ -1,11 +1,13 @@
 module Main exposing (..)
 
 import Browser
-import Chords exposing (Token(..))
-import Html exposing (Html, b, div, span, text, textarea)
+import Chords exposing (Chord(..), Token(..))
+import Chords.Note exposing (Note)
+import Html exposing (Html, button, div, span, strong, text, textarea)
 import Html.Attributes exposing (class, placeholder, value)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onClick, onInput)
 import Parser exposing (..)
+import Shift exposing (Shift)
 
 
 
@@ -33,12 +35,12 @@ type alias ParsedSheet =
 
 
 type alias Model =
-    { input : RawSheet, output : ParsedSheet }
+    { input : RawSheet, output : ParsedSheet, shift : Shift }
 
 
 init : Model
 init =
-    { input = "", output = [] }
+    { input = "", output = [], shift = Shift.fromInt 0 }
 
 
 
@@ -47,6 +49,8 @@ init =
 
 type Msg
     = Change String
+    | Decrement
+    | Increment
 
 
 update : Msg -> Model -> Model
@@ -55,34 +59,54 @@ update msg model =
         Change i ->
             { model | input = i, output = Chords.parseSheet i }
 
+        Decrement ->
+            { model | shift = Shift.decrement model.shift }
+
+        Increment ->
+            { model | shift = Shift.increment model.shift }
+
 
 
 -- VIEW
 
 
-renderLine : ParsedLine -> Html Msg
-renderLine res =
-    case res of
-        Ok ts ->
-            div [] (List.map renderToken ts)
+transpose : Shift -> Chord -> Chord
+transpose sh (Chord note quality) =
+    Chord (Chords.Note.transpose (Shift.toInt sh) note) quality
+
+
+renderLine : Shift -> ParsedLine -> Html Msg
+renderLine sh line =
+    case line of
+        Ok tokens ->
+            div [] (List.map (renderToken sh) tokens)
 
         Err e ->
             span [] [ text (deadEndsToString e) ]
 
 
-renderToken : Token -> Html Msg
-renderToken t =
-    case t of
+renderToken : Shift -> Token -> Html Msg
+renderToken sh token =
+    case token of
         Lyrics s ->
             span [] [ text s ]
 
-        Parsed c ->
-            span [] [ b [] [ text (Chords.toString c) ] ]
+        Parsed chord ->
+            span [] [ renderChord sh chord ]
+
+
+renderChord : Shift -> Chord -> Html Msg
+renderChord sh =
+    transpose sh >> Chords.toString >> text >> List.singleton >> strong []
 
 
 view : Model -> Html Msg
 view model =
     div [ class "container" ]
         [ textarea [ class "sheet-input", placeholder "Sheet", value model.input, onInput Change ] []
-        , div [ class "sheet-output" ] (List.map renderLine model.output)
+        , div [ class "button-group" ]
+            [ button [ class "button-outline", onClick Decrement ] [ text "-1" ]
+            , button [ class "button-outline", onClick Increment ] [ text "+1" ]
+            ]
+        , div [ class "sheet-output" ] (List.map (renderLine model.shift) model.output)
         ]
