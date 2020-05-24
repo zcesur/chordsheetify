@@ -42,6 +42,11 @@ type alias Model =
     { input : RawSheet, output : ParsedSheet, shift : Shift }
 
 
+transpose : Shift -> Chord -> Chord
+transpose sh (Chord note quality) =
+    Chord (Chords.Note.transpose (Shift.toInt sh) note) quality
+
+
 toChord : Token -> Maybe Chord
 toChord token =
     case token of
@@ -99,38 +104,33 @@ update msg model =
 -- VIEW
 
 
-transpose : Shift -> Chord -> Chord
-transpose sh (Chord note quality) =
-    Chord (Chords.Note.transpose (Shift.toInt sh) note) quality
-
-
-renderLine : Shift -> ParsedLine -> Html Msg
-renderLine sh line =
+viewLine : Shift -> ParsedLine -> Html Msg
+viewLine sh line =
     case line of
         Ok tokens ->
-            div [] (map (renderToken sh) tokens)
+            div [] (map (viewToken sh) tokens)
 
         Err e ->
             span [] [ text (deadEndsToString e) ]
 
 
-renderToken : Shift -> Token -> Html Msg
-renderToken sh token =
+viewToken : Shift -> Token -> Html Msg
+viewToken sh token =
     case token of
         Lyrics s ->
             span [] [ text s ]
 
         Parsed chord ->
-            span [] [ renderChord sh chord ]
+            span [] [ viewChord sh chord ]
 
 
-renderChord : Shift -> Chord -> Html Msg
-renderChord sh =
+viewChord : Shift -> Chord -> Html Msg
+viewChord sh =
     transpose sh >> Chords.toString >> text >> singleton >> strong []
 
 
-renderChart : Chord -> Html Msg
-renderChart chord =
+viewChart : Chord -> Html Msg
+viewChart chord =
     let
         config =
             { tuning = Guitar.defaultTuning
@@ -159,6 +159,6 @@ view model =
             [ button [ class "button-outline", onClick Decrement ] [ text "-1" ]
             , button [ class "button-outline", onClick Increment ] [ text "+1" ]
             ]
-        , div [] (model.output |> sheetToChords |> map (transpose model.shift) |> map renderChart)
-        , div [ class "sheet-output" ] (map (renderLine model.shift) model.output)
+        , div [] (model.output |> sheetToChords |> map (transpose model.shift) |> map viewChart)
+        , div [ class "sheet-output" ] (map (viewLine model.shift) model.output)
         ]
