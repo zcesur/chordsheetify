@@ -158,7 +158,7 @@ viewChart instrument chord =
     in
     case Instrument.voicings instrument config chord of
         [] ->
-            span [] [ text ("Could not find voicing for chord " ++ name) ]
+            text ("Could not find voicing for chord " ++ name)
 
         first :: rest ->
             Chart.view name first
@@ -167,6 +167,13 @@ viewChart instrument chord =
 viewInstrumentOpt : Instrument -> Html Msg
 viewInstrumentOpt i =
     option [ value (Instrument.toString i) ] [ text (capitalize (Instrument.toString i)) ]
+
+
+viewCharts : Model -> List (Html Msg)
+viewCharts model =
+    model.output
+        |> sheetToChords
+        |> map (transpose model.shift >> viewChart model.instrument >> singleton >> div [ class "chart" ])
 
 
 view : Model -> Html Msg
@@ -182,6 +189,6 @@ view model =
                     ]
                 ]
             ]
-        , div [] (model.output |> sheetToChords |> map (transpose model.shift) |> map (viewChart model.instrument))
+        , div [ class "charts" ] (viewCharts model)
         , div [ class "sheet-output" ] (map (viewLine model.shift) model.output)
         ]
