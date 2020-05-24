@@ -1,5 +1,17 @@
 .sheet-input {
-  min-height: 25vh;
+  transition: height .5s ease;
+  height: calc(100vh - 32px);
+  margin: 16px 0;
+  resize: none;
+  overflow: auto;
+}
+
+.sheet-input.has-content {
+  height: 10vh;
+}
+
+.sheet-input.has-content:hover {
+  height: 50vh;
 }
 
 .sheet-output {

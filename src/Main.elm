@@ -5,7 +5,7 @@ import Chords exposing (Chord(..), Token(..))
 import Chords.Chart as Chart
 import Chords.Note as Note exposing (Note)
 import Html exposing (Html, button, div, option, select, span, strong, text, textarea)
-import Html.Attributes exposing (class, placeholder, value)
+import Html.Attributes exposing (class, classList, placeholder, value)
 import Html.Events exposing (onClick, onInput)
 import Instrument exposing (Instrument(..))
 import Instruments.Guitar as Guitar
@@ -176,10 +176,35 @@ viewCharts model =
         |> map (transpose model.shift >> viewChart model.instrument >> singleton >> div [ class "chart" ])
 
 
+textAreaPlaceholder : String
+textAreaPlaceholder =
+    """Paste chord sheet.
+Make sure that chords are surrounded with square brackets.
+
+[G]               [Gsus2]  [G]             [G]     [Gsus2]  [G]   [C]    [C]    [C]    [C]
+Such is the way of     the world, You can ne  -   ver know
+
+[G]                 [Gsus2]  [G]              [G]   [Gsus2]  [G]   [C]     [C]    [C]    [C]
+Just where to put all    your faith And how will   it  grow
+
+      [D]         [G]                           [C]        [Cadd9]  [C]  [Cadd9]
+Gonna rise up, Bringing back holes in dark memories
+
+      [D]         [G]                [C]        [C]    [C]   [C6]
+Gonna rise up, Turning mistakes into gold
+"""
+
+
 view : Model -> Html Msg
 view model =
     div [ class "container" ]
-        [ textarea [ class "sheet-input", placeholder "Sheet", value model.input, onInput SetSheet ] []
+        [ textarea
+            [ classList [ ( "sheet-input", True ), ( "has-content", String.trim model.input /= "" ) ]
+            , placeholder textAreaPlaceholder
+            , value model.input
+            , onInput SetSheet
+            ]
+            []
         , div [ class "row" ]
             [ div [ class "column column-33 column-offset-33" ] [ select [ onInput SetInstrument ] (map viewInstrumentOpt [ Guitar, Ukulele ]) ]
             , div [ class "column column-33" ]
