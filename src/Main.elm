@@ -2,12 +2,14 @@ module Main exposing (..)
 
 import Browser
 import Chords exposing (Chord(..), Token(..))
-import Chords.Chart
-import Chords.Note exposing (Note)
-import Html exposing (Html, button, div, span, strong, text, textarea)
+import Chords.Chart as Chart
+import Chords.Note as Note exposing (Note)
+import Html exposing (Html, button, div, option, select, span, strong, text, textarea)
 import Html.Attributes exposing (class, placeholder, value)
 import Html.Events exposing (onClick, onInput)
+import Instrument exposing (Instrument(..))
 import Instruments.Guitar as Guitar
+import Instruments.Ukulele as Ukulele
 import List exposing (concatMap, filterMap, map, singleton)
 import List.Extra exposing (uniqueBy)
 import Parser exposing (DeadEnd, deadEndsToString)
@@ -39,12 +41,12 @@ type alias ParsedSheet =
 
 
 type alias Model =
-    { input : RawSheet, output : ParsedSheet, shift : Shift }
+    { input : RawSheet, output : ParsedSheet, shift : Shift, instrument : Instrument }
 
 
 transpose : Shift -> Chord -> Chord
 transpose sh (Chord note quality) =
-    Chord (Chords.Note.transpose (Shift.toInt sh) note) quality
+    Chord (Note.transpose (Shift.toInt sh) note) quality
 
 
 toChord : Token -> Maybe Chord
@@ -74,7 +76,7 @@ sheetToChords =
 
 init : Model
 init =
-    { input = "", output = [], shift = Shift.fromInt 0 }
+    { input = "", output = [], shift = Shift.fromInt 0, instrument = Guitar }
 
 
 
@@ -82,7 +84,8 @@ init =
 
 
 type Msg
-    = Change String
+    = SetSheet String
+    | SetInstrument String
     | Decrement
     | Increment
 
@@ -90,8 +93,11 @@ type Msg
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        Change i ->
+        SetSheet i ->
             { model | input = i, output = Chords.parseSheet i }
+
+        SetInstrument i ->
+            { model | instrument = Maybe.withDefault model.instrument (Instrument.fromString i) }
 
         Decrement ->
             { model | shift = Shift.decrement model.shift }
@@ -102,6 +108,16 @@ update msg model =
 
 
 -- VIEW
+
+
+capitalize : String -> String
+capitalize s =
+    case String.toList s of
+        x :: xs ->
+            (x |> String.fromChar |> String.toUpper) ++ String.fromList xs
+
+        [] ->
+            s
 
 
 viewLine : Shift -> ParsedLine -> Html Msg
@@ -129,36 +145,43 @@ viewChord sh =
     transpose sh >> Chords.toString >> text >> singleton >> strong []
 
 
-viewChart : Chord -> Html Msg
-viewChart chord =
+viewChart : Instrument -> Chord -> Html Msg
+viewChart instrument chord =
     let
         config =
-            { tuning = Guitar.defaultTuning
+            { tuning = Instrument.defaultTuning instrument
             , numFrets = 10
             }
 
         name =
             Chords.toString chord
     in
-    case Guitar.voicings config chord of
+    case Instrument.voicings instrument config chord of
         [] ->
-            Html.span []
-                [ Html.text
-                    ("Could not find voicing for chord " ++ name)
-                ]
+            span [] [ text ("Could not find voicing for chord " ++ name) ]
 
         first :: rest ->
-            Chords.Chart.view name first
+            Chart.view name first
+
+
+viewInstrumentOpt : Instrument -> Html Msg
+viewInstrumentOpt i =
+    option [ value (Instrument.toString i) ] [ text (capitalize (Instrument.toString i)) ]
 
 
 view : Model -> Html Msg
 view model =
     div [ class "container" ]
-        [ textarea [ class "sheet-input", placeholder "Sheet", value model.input, onInput Change ] []
-        , div [ class "button-group" ]
-            [ button [ class "button-outline", onClick Decrement ] [ text "-1" ]
-            , button [ class "button-outline", onClick Increment ] [ text "+1" ]
+        [ textarea [ class "sheet-input", placeholder "Sheet", value model.input, onInput SetSheet ] []
+        , div [ class "row" ]
+            [ div [ class "column column-33 column-offset-33" ] [ select [ onInput SetInstrument ] (map viewInstrumentOpt [ Guitar, Ukulele ]) ]
+            , div [ class "column column-33" ]
+                [ div [ class "button-group" ]
+                    [ button [ class "button-outline", onClick Decrement ] [ text "-1" ]
+                    , button [ class "button-outline", onClick Increment ] [ text "+1" ]
+                    ]
+                ]
             ]
-        , div [] (model.output |> sheetToChords |> map (transpose model.shift) |> map viewChart)
+        , div [] (model.output |> sheetToChords |> map (transpose model.shift) |> map (viewChart model.instrument))
         , div [ class "sheet-output" ] (map (viewLine model.shift) model.output)
         ]
