@@ -14,3 +14,8 @@
 .button-group > button {
   margin: 0 8px;
 }
+
+svg {
+  height: 150px;
+  width: auto;
+}
