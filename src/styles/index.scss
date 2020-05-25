@@ -1,17 +1,18 @@
 .sheet-input {
+  $margin: 16px;
   transition: height .5s ease;
-  height: calc(100vh - 32px);
-  margin: 16px 0;
+  height: calc(100vh - #{2 * $margin});
+  margin: $margin 0;
   resize: none;
   overflow: auto;
-}
 
-.sheet-input.has-content {
-  height: 10vh;
-}
+  &.has-content {
+    height: 10vh;
 
-.sheet-input.has-content:hover {
-  height: 50vh;
+    &:hover {
+      height: 50vh;
+    }
+  }
 }
 
 .sheet-output {
@@ -21,17 +22,17 @@
 .button-group {
   display: flex;
   justify-content: center;
-}
 
-.button-group > button {
-  margin: 0 8px;
+  & > button {
+    margin: 0 8px;
+  }
 }
 
 .charts {
   display: flex;
   align-items: center;
-}
 
-.charts > .chart {
-  max-width: 120px;
+  & > .chart {
+    max-width: 120px;
+  }
 }
