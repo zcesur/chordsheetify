@@ -4,13 +4,14 @@
   height: calc(100vh - #{2 * $margin});
   margin: $margin 0;
   resize: none;
+  display: block;
   overflow: auto;
 
   &.has-content {
     height: 10vh;
 
     &:hover {
-      height: 50vh;
+      height: calc(50vh - #{2 * $margin});
     }
   }
 }
