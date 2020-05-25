@@ -8,11 +8,16 @@ const HTMLWebpackPlugin = require("html-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
+  mode: "production",
   entry: "./index.js",
   output: {
     filename: "[name].[hash].js",
     path: path.resolve(__dirname, "dist"),
     publicPath: "/"
+  },
+  resolve: {
+    modules: [path.resolve(__dirname, "src"), "node_modules"],
+    extensions: [".js", ".elm"]
   },
   optimization: {
     minimizer: [new TerserJSPlugin({}), new OptimizeCSSAssetsPlugin({})]
@@ -40,6 +45,16 @@ module.exports = {
           loader: "babel-loader",
           options: {
             presets: ["@babel/env"]
+          }
+        }
+      },
+      {
+        test: /\.elm$/,
+        exclude: [/elm-stuff/, /node_modules/],
+        use: {
+          loader: "elm-webpack-loader",
+          options: {
+            optimize: true
           }
         }
       },
