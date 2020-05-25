@@ -1,4 +1,5 @@
 $primary-color: #c83737;
+$black: #000;
 
 .button,
 button,
@@ -106,6 +107,12 @@ a {
 
 .sheet-output {
   white-space: pre-wrap;
+  strong {
+    cursor: pointer;
+    &:hover {
+      color: $primary-color;
+    }
+  }
 }
 
 .button-group {
@@ -123,5 +130,17 @@ a {
 
   & > .chart {
     max-width: 120px;
+
+    & > svg {
+      stroke: $black;
+      fill: $black;
+      & > text {
+        stroke: none;
+      }
+    }
+    &.active > svg {
+      stroke: $primary-color;
+      fill: $primary-color;
+    }
   }
 }

@@ -1,12 +1,12 @@
 module Main exposing (..)
 
 import Browser
+import Chart
 import Chords exposing (Chord(..), Token(..))
-import Chords.Chart as Chart
 import Chords.Note as Note exposing (Note)
 import Html exposing (Html, button, div, node, option, section, select, span, strong, text, textarea)
 import Html.Attributes exposing (class, classList, placeholder, spellcheck, value)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onClick, onInput, onMouseLeave, onMouseOver)
 import Instrument exposing (Instrument(..))
 import Instruments.Guitar as Guitar
 import Instruments.Ukulele as Ukulele
@@ -28,6 +28,20 @@ main =
 -- MODEL
 
 
+type alias Model =
+    { input : RawSheet
+    , output : ParsedSheet
+    , shift : Shift
+    , instrument : Instrument
+    , chord : Maybe Chord
+    }
+
+
+init : Model
+init =
+    { input = "", output = [], shift = Shift.fromInt 0, instrument = Guitar, chord = Nothing }
+
+
 type alias RawSheet =
     String
 
@@ -38,14 +52,6 @@ type alias ParsedLine =
 
 type alias ParsedSheet =
     List ParsedLine
-
-
-type alias Model =
-    { input : RawSheet
-    , output : ParsedSheet
-    , shift : Shift
-    , instrument : Instrument
-    }
 
 
 transpose : Shift -> Chord -> Chord
@@ -78,16 +84,6 @@ sheetToChords =
     map lineToChords >> concat >> uniqueBy Chords.toString
 
 
-inputNonEmpty : Model -> Bool
-inputNonEmpty { input } =
-    String.trim input /= ""
-
-
-init : Model
-init =
-    { input = "", output = [], shift = Shift.fromInt 0, instrument = Guitar }
-
-
 
 -- UPDATE
 
@@ -95,6 +91,7 @@ init =
 type Msg
     = SetSheet String
     | SetInstrument String
+    | SetChord (Maybe Chord)
     | Decrement
     | Increment
 
@@ -102,11 +99,14 @@ type Msg
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        SetSheet i ->
-            { model | input = i, output = Chords.parseSheet i }
+        SetSheet x ->
+            { model | input = x, output = Chords.parseSheet x }
 
-        SetInstrument i ->
-            { model | instrument = Maybe.withDefault model.instrument (Instrument.fromString i) }
+        SetInstrument x ->
+            { model | instrument = Maybe.withDefault model.instrument (Instrument.fromString x) }
+
+        SetChord x ->
+            { model | chord = x }
 
         Decrement ->
             { model | shift = Shift.decrement model.shift }
@@ -119,14 +119,27 @@ update msg model =
 -- VIEW
 
 
-capitalize : String -> String
-capitalize s =
-    case String.toList s of
-        x :: xs ->
-            (x |> String.fromChar |> String.toUpper) ++ String.fromList xs
-
-        [] ->
-            s
+view : Model -> Html Msg
+view model =
+    node "main"
+        [ class "container" ]
+        (concat
+            [ [ textarea
+                    [ classList [ ( "sheet-input", True ), ( "has-content", inputNonEmpty model ) ]
+                    , placeholder textAreaPlaceholder
+                    , value model.input
+                    , onInput SetSheet
+                    , spellcheck False
+                    ]
+                    []
+              ]
+            , map (renderIfInputNonEmpty model)
+                [ section [ class "row" ] viewOptions
+                , section [ class "charts" ] (viewCharts model)
+                , section [ class "sheet-output" ] (map (viewLine model.shift) model.output)
+                ]
+            ]
+        )
 
 
 viewLine : Shift -> ParsedLine -> Html Msg
@@ -150,8 +163,13 @@ viewToken sh token =
 
 
 viewChord : Shift -> Chord -> Html Msg
-viewChord sh =
-    transpose sh >> Chords.toString >> text >> singleton >> strong []
+viewChord sh x =
+    x
+        |> transpose sh
+        |> Chords.toString
+        |> text
+        |> singleton
+        |> strong [ onMouseOver (SetChord (Just x)), onMouseLeave (SetChord Nothing) ]
 
 
 viewChart : Instrument -> Chord -> Html Msg
@@ -181,24 +199,22 @@ viewInstrumentOpt i =
 
 
 viewCharts : Model -> List (Html Msg)
-viewCharts { output, shift, instrument } =
-    output
-        |> sheetToChords
-        |> map
-            (transpose shift
-                >> viewChart instrument
-                >> singleton
-                >> div [ class "chart" ]
-            )
+viewCharts model =
+    model.output |> sheetToChords |> map (viewChordChart model)
 
 
-renderIfInputNonEmpty : Model -> Html Msg -> Html Msg
-renderIfInputNonEmpty model html =
-    if inputNonEmpty model then
-        html
-
-    else
-        text ""
+viewChordChart : Model -> Chord -> Html Msg
+viewChordChart model chord =
+    chord
+        |> transpose model.shift
+        |> viewChart model.instrument
+        |> singleton
+        |> div
+            [ classList
+                [ ( "chart", True )
+                , ( "active", Just (Chords.toString chord) == Maybe.map Chords.toString model.chord )
+                ]
+            ]
 
 
 viewOptions : List (Html Msg)
@@ -213,27 +229,28 @@ viewOptions =
     ]
 
 
-view : Model -> Html Msg
-view model =
-    node "main"
-        [ class "container" ]
-        (concat
-            [ [ textarea
-                    [ classList [ ( "sheet-input", True ), ( "has-content", inputNonEmpty model ) ]
-                    , placeholder textAreaPlaceholder
-                    , value model.input
-                    , onInput SetSheet
-                    , spellcheck False
-                    ]
-                    []
-              ]
-            , map (renderIfInputNonEmpty model)
-                [ section [ class "row" ] viewOptions
-                , section [ class "charts" ] (viewCharts model)
-                , section [ class "sheet-output" ] (map (viewLine model.shift) model.output)
-                ]
-            ]
-        )
+inputNonEmpty : Model -> Bool
+inputNonEmpty { input } =
+    String.trim input /= ""
+
+
+renderIfInputNonEmpty : Model -> Html Msg -> Html Msg
+renderIfInputNonEmpty model html =
+    if inputNonEmpty model then
+        html
+
+    else
+        text ""
+
+
+capitalize : String -> String
+capitalize s =
+    case String.toList s of
+        x :: xs ->
+            (x |> String.fromChar |> String.toUpper) ++ String.fromList xs
+
+        [] ->
+            s
 
 
 textAreaPlaceholder : String
