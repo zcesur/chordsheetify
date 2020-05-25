@@ -5,7 +5,7 @@ import Chords exposing (Chord(..), Token(..))
 import Chords.Chart as Chart
 import Chords.Note as Note exposing (Note)
 import Html exposing (Html, button, div, node, option, section, select, span, strong, text, textarea)
-import Html.Attributes exposing (class, classList, placeholder, value)
+import Html.Attributes exposing (class, classList, placeholder, spellcheck, value)
 import Html.Events exposing (onClick, onInput)
 import Instrument exposing (Instrument(..))
 import Instruments.Guitar as Guitar
@@ -223,6 +223,7 @@ view model =
                     , placeholder textAreaPlaceholder
                     , value model.input
                     , onInput SetSheet
+                    , spellcheck False
                     ]
                     []
               ]
