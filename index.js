@@ -4,8 +4,15 @@ import "normalize.css/normalize.css";
 import "milligram/dist/milligram.css";
 import "./src/styles/index.scss";
 
+const lsKey = "sheet";
+
 try {
-  const app = Elm.Main.init({ node: document.getElementById("elm") });
+  const node = document.getElementById("elm");
+  const flags = JSON.parse(localStorage.getItem(lsKey));
+  const app = Elm.Main.init({ node, flags });
+  app.ports.storeSheet.subscribe(sheet => {
+    localStorage.setItem(lsKey, JSON.stringify(sheet));
+  });
 } catch (e) {
   // display initialization errors (e.g. bad flags, infinite recursion)
   const header = document.createElement("h1");

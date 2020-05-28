@@ -10,9 +10,12 @@ import Html.Events exposing (onClick, onInput, onMouseLeave, onMouseOver)
 import Instrument exposing (Instrument(..))
 import Instruments.Guitar as Guitar
 import Instruments.Ukulele as Ukulele
+import Json.Decode as Decode
+import Json.Encode as Encode
 import List exposing (concat, filterMap, map, singleton)
 import List.Extra exposing (uniqueBy)
 import Parser
+import Ports
 import Shift exposing (Shift)
 
 
@@ -20,8 +23,14 @@ import Shift exposing (Shift)
 -- MAIN
 
 
+main : Program (Maybe String) Model Msg
 main =
-    Browser.sandbox { init = init, update = update, view = view }
+    Browser.element
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        }
 
 
 
@@ -37,9 +46,25 @@ type alias Model =
     }
 
 
-init : Model
-init =
-    { input = "", output = [], shift = Shift.fromInt 0, instrument = Guitar, chord = Nothing }
+init : Maybe String -> ( Model, Cmd Msg )
+init flags =
+    let
+        storedSheet =
+            flags |> Maybe.andThen decodeStoredSheet |> Maybe.withDefault ""
+    in
+    ( { input = storedSheet
+      , output = Chords.parseSheet storedSheet
+      , shift = Shift.fromInt 0
+      , instrument = Guitar
+      , chord = Nothing
+      }
+    , Cmd.none
+    )
+
+
+decodeStoredSheet : String -> Maybe RawSheet
+decodeStoredSheet =
+    Decode.decodeString Decode.string >> Result.toMaybe
 
 
 type alias RawSheet =
@@ -84,6 +109,11 @@ sheetToChords =
     map lineToChords >> concat >> uniqueBy Chords.toString
 
 
+saveSheet : RawSheet -> Cmd Msg
+saveSheet =
+    Encode.string >> Encode.encode 0 >> Ports.storeSheet
+
+
 
 -- UPDATE
 
@@ -96,23 +126,32 @@ type Msg
     | Increment
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SetSheet x ->
-            { model | input = x, output = Chords.parseSheet x }
+            ( { model | input = x, output = Chords.parseSheet x }, saveSheet x )
 
         SetInstrument x ->
-            { model | instrument = Maybe.withDefault model.instrument (Instrument.fromString x) }
+            ( { model | instrument = Maybe.withDefault model.instrument (Instrument.fromString x) }, Cmd.none )
 
         SetChord x ->
-            { model | chord = x }
+            ( { model | chord = x }, Cmd.none )
 
         Decrement ->
-            { model | shift = Shift.decrement model.shift }
+            ( { model | shift = Shift.decrement model.shift }, Cmd.none )
 
         Increment ->
-            { model | shift = Shift.increment model.shift }
+            ( { model | shift = Shift.increment model.shift }, Cmd.none )
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
 
 
