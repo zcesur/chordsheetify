@@ -1,0 +1,44 @@
+#!/usr/bin/python3
+
+import os
+import sys
+import subprocess
+import requests
+
+proc = subprocess.run(["stack", "path", "--local-install-root"],
+                      stdout=subprocess.PIPE,
+                      universal_newlines=True)
+
+root_path = proc.stdout.strip()
+bin_name = 'chordsheetify-exe'
+bin_path = os.path.join(root_path, 'bin', bin_name)
+
+if not os.path.isfile(bin_path):
+    sys.exit("{} does not exist".format(bin_path))
+
+app_name = 'chordsheetify'
+sub_url = 'https://api.heroku.com/apps/{}'.format(app_name)
+
+headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/vnd.heroku+json; version=3',
+}
+
+print('Creating a new slug...')
+r = requests.post('{}/slugs'.format(sub_url),
+                  headers=headers,
+                  data='{{"process_types":{{"web":"./{}"}}}}'.format(bin_name))
+data = r.json()
+blob_url = data['blob']['url']
+slug_id = data['id']
+print('Created slug {}'.format(slug_id))
+
+print('Uploading blob to URL {}...'.format(blob_url))
+requests.put(blob_url, headers={}, data=open(bin_path, 'rb').read())
+print('Uploaded blob')
+
+print('Releasing the slug to app {}...'.format(app_name))
+requests.post('{}/releases'.format(sub_url),
+                  headers=headers,
+                  data='{{"slug":"{}"}}'.format(slug_id))
+print('Released the slug')
