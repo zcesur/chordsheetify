@@ -1,15 +1,15 @@
-module Main exposing (..)
+module Main exposing (main)
 
+import Api
 import Browser
 import Chart
 import Chords exposing (Chord(..), Token(..))
-import Chords.Note as Note exposing (Note)
+import Chords.Note as Note
 import Html exposing (Html, button, div, node, option, section, select, span, strong, text, textarea)
-import Html.Attributes exposing (class, classList, placeholder, spellcheck, value)
+import Html.Attributes exposing (class, classList, disabled, placeholder, selected, spellcheck, value)
 import Html.Events exposing (onClick, onInput, onMouseLeave, onMouseOver)
+import Http
 import Instrument exposing (Instrument(..))
-import Instruments.Guitar as Guitar
-import Instruments.Ukulele as Ukulele
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List exposing (concat, filterMap, map, singleton)
@@ -43,6 +43,9 @@ type alias Model =
     , shift : Shift
     , instrument : Instrument
     , chord : Maybe Chord
+    , sheetList : Maybe (List Api.Sheet)
+    , sheetId : Maybe String
+    , loadedSheet : Maybe Api.Sheet
     }
 
 
@@ -57,8 +60,11 @@ init flags =
       , shift = Shift.fromInt 0
       , instrument = Guitar
       , chord = Nothing
+      , sheetList = Nothing
+      , sheetId = Nothing
+      , loadedSheet = Nothing
       }
-    , Cmd.none
+    , Api.getApiSheets GotSheetList
     )
 
 
@@ -100,7 +106,7 @@ lineToChords line =
         Ok tokens ->
             filterMap toChord tokens
 
-        Err e ->
+        Err _ ->
             []
 
 
@@ -120,17 +126,34 @@ saveSheet =
 
 type Msg
     = SetSheet String
+    | SetSheetId String
     | SetInstrument String
     | SetChord (Maybe Chord)
-    | Decrement
-    | Increment
+    | Decremented
+    | Incremented
+    | GotSheet (Result Http.Error Api.Sheet)
+    | GotSheetList (Result Http.Error (List Api.Sheet))
+
+
+updateSheet : Model -> Api.Sheet -> Maybe Model
+updateSheet model sheet =
+    if Just sheet.id == model.sheetId then
+        Just { model | input = sheet.content, output = Chords.parseSheet sheet.content, loadedSheet = Just sheet }
+
+    else
+        Nothing
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SetSheet x ->
-            ( { model | input = x, output = Chords.parseSheet x }, saveSheet x )
+            ( { model | input = x, output = Chords.parseSheet x, loadedSheet = Nothing, sheetId = Nothing }, saveSheet x )
+
+        SetSheetId x ->
+            ( { model | sheetId = Just x }
+            , Api.getApiSheetsById x GotSheet
+            )
 
         SetInstrument x ->
             ( { model | instrument = Maybe.withDefault model.instrument (Instrument.fromString x) }, Cmd.none )
@@ -138,11 +161,26 @@ update msg model =
         SetChord x ->
             ( { model | chord = x }, Cmd.none )
 
-        Decrement ->
+        Decremented ->
             ( { model | shift = Shift.decrement model.shift }, Cmd.none )
 
-        Increment ->
+        Incremented ->
             ( { model | shift = Shift.increment model.shift }, Cmd.none )
+
+        GotSheet result ->
+            result
+                |> Result.toMaybe
+                |> Maybe.andThen (updateSheet model)
+                |> Maybe.withDefault model
+                |> (\m -> ( m, Cmd.none ))
+
+        GotSheetList result ->
+            case result of
+                Ok xs ->
+                    ( { model | sheetList = Just xs }, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
 
 
 
@@ -150,7 +188,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
@@ -173,7 +211,7 @@ view model =
                     []
               ]
             , map (renderIfInputNonEmpty model)
-                [ section [ class "row" ] viewOptions
+                [ section [ class "row" ] (viewOptions model)
                 , section [ class "charts" ] (viewCharts model)
                 , section [ class "sheet-output" ] (map (viewLine model.shift) model.output)
                 ]
@@ -226,7 +264,7 @@ viewChart instrument chord =
         [] ->
             text ("Could not find voicing for chord " ++ name)
 
-        first :: rest ->
+        first :: _ ->
             Chart.view name first
 
 
@@ -256,13 +294,43 @@ viewChordChart model chord =
             ]
 
 
-viewOptions : List (Html Msg)
-viewOptions =
-    [ div [ class "column column-33 column-offset-33" ] [ select [ onInput SetInstrument ] (map viewInstrumentOpt [ Guitar, Ukulele ]) ]
+viewSheetOptions : Model -> Html Msg
+viewSheetOptions { sheetId, sheetList, loadedSheet } =
+    let
+        loading =
+            case ( sheetId, loadedSheet ) of
+                ( Nothing, Nothing ) ->
+                    False
+
+                ( Just id, Just sheet ) ->
+                    id /= sheet.id
+
+                ( _, _ ) ->
+                    True
+
+        viewSheetOpt selectedId { id, name } =
+            option
+                [ value id, selected (selectedId == Just id) ]
+                [ text name ]
+    in
+    case sheetList of
+        Nothing ->
+            select [ disabled True ] [ option [] [ text "Loading sheets..." ] ]
+
+        Just sheets ->
+            select
+                [ onInput SetSheetId, disabled loading ]
+                (option [ disabled True, selected (sheetId == Nothing) ] [ text "Select a sheet" ] :: map (viewSheetOpt sheetId) sheets)
+
+
+viewOptions : Model -> List (Html Msg)
+viewOptions model =
+    [ div [ class "column column-33" ] [ viewSheetOptions model ]
+    , div [ class "column column-33" ] [ select [ onInput SetInstrument ] (map viewInstrumentOpt [ Guitar, Ukulele ]) ]
     , div [ class "column column-33" ]
         [ div [ class "button-group" ]
-            [ button [ onClick Decrement ] [ text "-1" ]
-            , button [ onClick Increment ] [ text "+1" ]
+            [ button [ onClick Decremented ] [ text "-1" ]
+            , button [ onClick Incremented ] [ text "+1" ]
             ]
         ]
     ]

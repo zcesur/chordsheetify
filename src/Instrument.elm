@@ -1,7 +1,7 @@
 module Instrument exposing (Config, Instrument(..), defaultTuning, fromString, toString, voicings)
 
 import Chords exposing (Chord, Voicing)
-import Chords.Pitch as Pitch exposing (Pitch)
+import Chords.Pitch exposing (Pitch)
 import Instruments.Guitar as Guitar
 import Instruments.Ukulele as Ukulele
 
