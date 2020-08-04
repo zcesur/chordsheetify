@@ -6,11 +6,14 @@
 module App where
 
 import           Data.Aeson
+import           Data.Maybe (fromMaybe)
+import           Text.Read (readMaybe)
 import           GHC.Generics
 import           Network.Wai
 import           Network.Wai.Handler.Warp
 import           Servant
 import           System.IO
+import           System.Environment (lookupEnv)
 
 
 
@@ -31,7 +34,8 @@ sheetApi = Proxy
 
 run :: IO ()
 run = do
-  let port = 3000
+  portEnv <- lookupEnv "PORT"
+  let port = fromMaybe 3000 (portEnv >>= readMaybe)
       settings =
         setPort port $
         setBeforeMainLoop (hPutStrLn stderr ("listening on port " ++ show port))
@@ -78,4 +82,3 @@ exampleSheet = Sheet 0 $ unlines
   , "      [D]         [G]                [C]        [C]    [C]   [C6]"
   , "Gonna rise up, Turning mistakes into gold"
   ]
-
