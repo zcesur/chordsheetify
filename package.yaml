@@ -21,24 +21,27 @@ dependencies:
 - base >= 4.7 && < 5
 - servant
 - servant-server
+- servant-elm
+- elm-bridge
 - aeson
 - wai
+- wai-cors
 - warp
-
-library:
-  source-dirs: src
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
 
 executables:
   chordsheetify-exe:
     main:                Main.hs
-    source-dirs:         app
+    source-dirs:
+      - server
     ghc-options:
+    - -Wall
+    - -Wcompat
+    - -Wincomplete-record-updates
+    - -Wincomplete-uni-patterns
+    - -Wredundant-constraints
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    dependencies:
-    - chordsheetify
 
 tests:
   chordsheetify-test:

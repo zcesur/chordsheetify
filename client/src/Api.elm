@@ -33,14 +33,14 @@ jsonEncSheet  val =
 
 
 
-type alias SheetId  = Int
+type alias SheetId  = String
 
 jsonDecSheetId : Json.Decode.Decoder ( SheetId )
 jsonDecSheetId =
-    Json.Decode.int
+    Json.Decode.string
 
 jsonEncSheetId : SheetId -> Value
-jsonEncSheetId  val = Json.Encode.int val
+jsonEncSheetId  val = Json.Encode.string val
 
 
 getApiSheets : (Result Http.Error  ((List Sheet))  -> msg) -> Cmd msg
@@ -72,7 +72,7 @@ getApiSheets toMsg =
                 Nothing
             }
 
-getApiSheetsById : Int -> (Result Http.Error  (Sheet)  -> msg) -> Cmd msg
+getApiSheetsById : String -> (Result Http.Error  (Sheet)  -> msg) -> Cmd msg
 getApiSheetsById capture_id toMsg =
     let
         params =
@@ -89,7 +89,7 @@ getApiSheetsById capture_id toMsg =
                 Url.Builder.crossOrigin "https://chordsheetify.herokuapp.com"
                     [ "api"
                     , "sheets"
-                    , (capture_id |> String.fromInt)
+                    , (capture_id)
                     ]
                     params
             , body =
