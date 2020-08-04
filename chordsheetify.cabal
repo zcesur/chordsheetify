@@ -1,0 +1,75 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 8f563ccda4467b551452f102c072d1d802ed7b48cb5cb842d3070b8f5e2c8308
+
+name:           chordsheetify
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/zcesur/chordsheetify#readme>
+homepage:       https://github.com/zcesur/chordsheetify#readme
+bug-reports:    https://github.com/zcesur/chordsheetify/issues
+author:         Zafer Cesur
+maintainer:     17045339+zcesur@users.noreply.github.com
+copyright:      2020 Zafer Cesur
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/zcesur/chordsheetify
+
+library
+  exposed-modules:
+      App
+  other-modules:
+      Paths_chordsheetify
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , servant
+    , servant-server
+    , wai
+    , warp
+  default-language: Haskell2010
+
+executable chordsheetify-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_chordsheetify
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , chordsheetify
+    , servant
+    , servant-server
+    , wai
+    , warp
+  default-language: Haskell2010
+
+test-suite chordsheetify-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_chordsheetify
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , chordsheetify
+    , servant
+    , servant-server
+    , wai
+    , warp
+  default-language: Haskell2010

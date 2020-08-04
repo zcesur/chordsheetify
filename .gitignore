@@ -1,3 +1,5 @@
+.stack-work/
+*~
 elm-stuff
 repl-temp-*
 dist
