@@ -19,11 +19,13 @@ description:         Please see the README on GitHub at <https://github.com/zces
 
 dependencies:
 - base >= 4.7 && < 5
-- servant
-- servant-server
-- servant-elm
 - elm-bridge
-- aeson
+- lens
+- servant-elm
+- servant-server
+- servant-swagger
+- servant-swagger-ui
+- swagger2
 - wai
 - wai-cors
 - warp

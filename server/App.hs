@@ -1,18 +1,30 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase        #-}
 
 module App where
 
+import           Control.Lens
+import           Data.Swagger
 import           Network.Wai
 import           Network.Wai.Middleware.Cors
 import           Servant
+import           Servant.Swagger
+import           Servant.Swagger.UI
 
 import           Api
 
 mkApp :: IO Application
 mkApp = return $ simpleCors $ serve api server
 
+-- brittany-disable-next-binding
+apiSwagger :: Swagger
+apiSwagger = toSwagger basicApi
+  & info.title   .~ "Chordsheetify API"
+  & info.version .~ "1.0.0"
+  & host         ?~ "chordsheetify.herokuapp.com"
+
 server :: Server Api
-server = getSheets :<|> getSheetById
+server = swaggerSchemaUIServer apiSwagger :<|> getSheets :<|> getSheetById
 
 getSheets :: Handler [Sheet]
 getSheets = return [rise]
@@ -20,7 +32,7 @@ getSheets = return [rise]
 getSheetById :: String -> Handler Sheet
 getSheetById = \case
   "37635f03-bc33-432f-9514-ea44c89148e5" -> return rise
-  _      -> throwError err404
+  _ -> throwError err404
 
 rise :: Sheet
 rise = Sheet

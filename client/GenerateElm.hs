@@ -17,4 +17,4 @@ main = generateElmModuleWith
   defElmImports
   "client/src"
   [DefineElm (Proxy :: Proxy Sheet), DefineElm (Proxy :: Proxy SheetId)]
-  (Proxy :: Proxy Api)
+  (Proxy :: Proxy BasicApi)

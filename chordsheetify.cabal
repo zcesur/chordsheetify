@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c2c786a750e404d5fc9eee3f1321e28c736c8e716587b6f859cfa67030396eb1
+-- hash: 414237d0bf912cf0881bc5c07f55d5e67a6784e6e6f51699a4c8e966c2f499ff
 
 name:           chordsheetify
 version:        0.1.0.0
@@ -32,12 +32,14 @@ executable chordsheetify-exe
       server
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , elm-bridge
-    , servant
+    , lens
     , servant-elm
     , servant-server
+    , servant-swagger
+    , servant-swagger-ui
+    , swagger2
     , wai
     , wai-cors
     , warp
@@ -52,13 +54,15 @@ test-suite chordsheetify-test
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , chordsheetify
     , elm-bridge
-    , servant
+    , lens
     , servant-elm
     , servant-server
+    , servant-swagger
+    , servant-swagger-ui
+    , swagger2
     , wai
     , wai-cors
     , warp
