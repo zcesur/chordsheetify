@@ -38,43 +38,19 @@ main =
 
 
 type alias Model =
-    { input : RawSheet
-    , output : ParsedSheet
+    { sheet : Sheet
+    , sheetList : Maybe (List Api.Sheet)
+    , sheetId : Maybe Api.SheetId
+    , parsedSheet : ParsedSheet
     , shift : Shift
     , instrument : Instrument
     , chord : Maybe Chord
-    , sheetList : Maybe (List Api.Sheet)
-    , sheetId : Maybe String
-    , loadedSheet : Maybe Api.Sheet
     }
 
 
-init : Maybe String -> ( Model, Cmd Msg )
-init flags =
-    let
-        storedSheet =
-            flags |> Maybe.andThen decodeStoredSheet |> Maybe.withDefault ""
-    in
-    ( { input = storedSheet
-      , output = Chords.parseSheet storedSheet
-      , shift = Shift.fromInt 0
-      , instrument = Guitar
-      , chord = Nothing
-      , sheetList = Nothing
-      , sheetId = Nothing
-      , loadedSheet = Nothing
-      }
-    , Api.getApiSheets GotSheetList
-    )
-
-
-decodeStoredSheet : String -> Maybe RawSheet
-decodeStoredSheet =
-    Decode.decodeString Decode.string >> Result.toMaybe
-
-
-type alias RawSheet =
-    String
+type Sheet
+    = NewSheet String
+    | LoadedSheet Api.Sheet
 
 
 type alias ParsedLine =
@@ -83,6 +59,39 @@ type alias ParsedLine =
 
 type alias ParsedSheet =
     List ParsedLine
+
+
+init : Maybe String -> ( Model, Cmd Msg )
+init flags =
+    let
+        storedSheet =
+            flags |> Maybe.andThen decodeStoredSheet |> Maybe.withDefault ""
+    in
+    ( { sheet = NewSheet storedSheet
+      , sheetList = Nothing
+      , sheetId = Nothing
+      , parsedSheet = Chords.parseSheet storedSheet
+      , shift = Shift.fromInt 0
+      , instrument = Guitar
+      , chord = Nothing
+      }
+    , Api.getApiSheets GotSheetList
+    )
+
+
+decodeStoredSheet : String -> Maybe String
+decodeStoredSheet =
+    Decode.decodeString Decode.string >> Result.toMaybe
+
+
+content : Sheet -> String
+content sheet =
+    case sheet of
+        NewSheet s ->
+            s
+
+        LoadedSheet s ->
+            s.content
 
 
 transpose : Shift -> Chord -> Chord
@@ -115,7 +124,7 @@ sheetToChords =
     map lineToChords >> concat >> uniqueBy Chords.toString
 
 
-saveSheet : RawSheet -> Cmd Msg
+saveSheet : String -> Cmd Msg
 saveSheet =
     Encode.string >> Encode.encode 0 >> Ports.storeSheet
 
@@ -126,7 +135,7 @@ saveSheet =
 
 type Msg
     = SetSheet String
-    | SetSheetId String
+    | SetSheetId Api.SheetId
     | SetInstrument String
     | SetChord (Maybe Chord)
     | Decremented
@@ -138,7 +147,7 @@ type Msg
 updateSheet : Model -> Api.Sheet -> Maybe Model
 updateSheet model sheet =
     if Just sheet.id == model.sheetId then
-        Just { model | input = sheet.content, output = Chords.parseSheet sheet.content, loadedSheet = Just sheet }
+        Just { model | sheet = LoadedSheet sheet, parsedSheet = Chords.parseSheet sheet.content }
 
     else
         Nothing
@@ -148,7 +157,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SetSheet x ->
-            ( { model | input = x, output = Chords.parseSheet x, loadedSheet = Nothing, sheetId = Nothing }, saveSheet x )
+            ( { model | sheet = NewSheet x, parsedSheet = Chords.parseSheet x, sheetId = Nothing }, saveSheet x )
 
         SetSheetId x ->
             ( { model | sheetId = Just x }
@@ -202,18 +211,18 @@ view model =
         [ class "container" ]
         (concat
             [ [ textarea
-                    [ classList [ ( "sheet-input", True ), ( "has-content", inputNonEmpty model ) ]
+                    [ classList [ ( "sheet-input", True ), ( "has-content", sheetNonEmpty model.sheet ) ]
                     , placeholder textAreaPlaceholder
-                    , value model.input
+                    , value (content model.sheet)
                     , onInput SetSheet
                     , spellcheck False
                     ]
                     []
               ]
-            , map (renderIfInputNonEmpty model)
+            , map (renderIfSheetNonEmpty model.sheet)
                 [ section [ class "row" ] (viewOptions model)
                 , section [ class "charts" ] (viewCharts model)
-                , section [ class "sheet-output" ] (map (viewLine model.shift) model.output)
+                , section [ class "sheet-output" ] (map (viewLine model.shift) model.parsedSheet)
                 ]
             ]
         )
@@ -277,7 +286,7 @@ viewInstrumentOpt i =
 
 viewCharts : Model -> List (Html Msg)
 viewCharts model =
-    model.output |> sheetToChords |> map (viewChordChart model)
+    model.parsedSheet |> sheetToChords |> map (viewChordChart model)
 
 
 viewChordChart : Model -> Chord -> Html Msg
@@ -295,18 +304,18 @@ viewChordChart model chord =
 
 
 viewSheetOptions : Model -> Html Msg
-viewSheetOptions { sheetId, sheetList, loadedSheet } =
+viewSheetOptions { sheet, sheetId, sheetList } =
     let
         loading =
-            case ( sheetId, loadedSheet ) of
-                ( Nothing, Nothing ) ->
+            case ( sheet, sheetId ) of
+                ( _, Nothing ) ->
                     False
 
-                ( Just id, Just sheet ) ->
-                    id /= sheet.id
-
-                ( _, _ ) ->
+                ( NewSheet _, Just _ ) ->
                     True
+
+                ( LoadedSheet s, Just id ) ->
+                    s.id /= id
 
         viewSheetOpt selectedId { id, name } =
             option
@@ -336,14 +345,14 @@ viewOptions model =
     ]
 
 
-inputNonEmpty : Model -> Bool
-inputNonEmpty { input } =
-    String.trim input /= ""
+sheetNonEmpty : Sheet -> Bool
+sheetNonEmpty sheet =
+    String.trim (content sheet) /= ""
 
 
-renderIfInputNonEmpty : Model -> Html Msg -> Html Msg
-renderIfInputNonEmpty model html =
-    if inputNonEmpty model then
+renderIfSheetNonEmpty : Sheet -> Html Msg -> Html Msg
+renderIfSheetNonEmpty sheet html =
+    if sheetNonEmpty sheet then
         html
 
     else
