@@ -3,7 +3,7 @@ module Main exposing (main)
 import Api
 import Browser
 import Chart
-import Chords exposing (Chord(..), Token(..))
+import Chords exposing (Chord(..), Token(..), parseChord)
 import Chords.Note as Note
 import Html exposing (Html, button, div, node, option, section, select, span, strong, text, textarea)
 import Html.Attributes exposing (class, classList, disabled, placeholder, selected, spellcheck, value)
@@ -13,8 +13,7 @@ import Instrument exposing (Instrument(..))
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List exposing (concat, filterMap, map, singleton)
-import List.Extra exposing (uniqueBy)
-import Parser
+import List.Extra exposing (groupWhile, uniqueBy)
 import Ports
 import Shift exposing (Shift)
 
@@ -53,12 +52,8 @@ type Sheet
     | LoadedSheet Api.Sheet
 
 
-type alias ParsedLine =
-    Result (List Parser.DeadEnd) (List Token)
-
-
 type alias ParsedSheet =
-    List ParsedLine
+    List Token
 
 
 init : Maybe String -> ( Model, Cmd Msg )
@@ -70,7 +65,7 @@ init flags =
     ( { sheet = NewSheet storedSheet
       , sheetList = Nothing
       , sheetId = Nothing
-      , parsedSheet = Chords.parseSheet storedSheet
+      , parsedSheet = parseSheet storedSheet
       , shift = Shift.fromInt 0
       , instrument = Guitar
       , chord = Nothing
@@ -82,6 +77,33 @@ init flags =
 decodeStoredSheet : String -> Maybe String
 decodeStoredSheet =
     Decode.decodeString Decode.string >> Result.toMaybe
+
+
+parseSheet : String -> List Token
+parseSheet =
+    String.toList
+        >> groupWhile (\x y -> xor (isMusical x) (isMusical y) |> not)
+        >> List.map (fromNonEmpty >> String.fromList >> toToken)
+
+
+isMusical : Char -> Bool
+isMusical c =
+    Char.isAlphaNum c || List.member c [ '+', '-', '#', '/' ]
+
+
+toToken : String -> Token
+toToken s =
+    s |> parseChord |> Result.map Parsed |> Result.withDefault (Lyrics s)
+
+
+fromNonEmpty : ( a, List a ) -> List a
+fromNonEmpty =
+    uncurry (::)
+
+
+uncurry : (a -> b -> c) -> ( a, b ) -> c
+uncurry f ( x, y ) =
+    f x y
 
 
 content : Sheet -> String
@@ -102,26 +124,16 @@ transpose sh (Chord note quality) =
 toChord : Token -> Maybe Chord
 toChord token =
     case token of
-        Lyrics _ ->
-            Nothing
-
         Parsed chord ->
             Just chord
 
-
-lineToChords : ParsedLine -> List Chord
-lineToChords line =
-    case line of
-        Ok tokens ->
-            filterMap toChord tokens
-
-        Err _ ->
-            []
+        _ ->
+            Nothing
 
 
 sheetToChords : ParsedSheet -> List Chord
 sheetToChords =
-    map lineToChords >> concat >> uniqueBy Chords.toString
+    filterMap toChord >> uniqueBy Chords.toString
 
 
 saveSheet : String -> Cmd Msg
@@ -147,7 +159,7 @@ type Msg
 updateSheet : Model -> Api.Sheet -> Maybe Model
 updateSheet model sheet =
     if Just sheet.id == model.sheetId then
-        Just { model | sheet = LoadedSheet sheet, parsedSheet = Chords.parseSheet sheet.content }
+        Just { model | sheet = LoadedSheet sheet, parsedSheet = parseSheet sheet.content }
 
     else
         Nothing
@@ -157,7 +169,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SetSheet x ->
-            ( { model | sheet = NewSheet x, parsedSheet = Chords.parseSheet x, sheetId = Nothing }, saveSheet x )
+            ( { model | sheet = NewSheet x, parsedSheet = parseSheet x, sheetId = Nothing }, saveSheet x )
 
         SetSheetId x ->
             ( { model | sheetId = x }
@@ -217,7 +229,7 @@ view model =
         (concat
             [ [ textarea
                     [ classList [ ( "sheet-input", True ), ( "has-content", sheetNonEmpty model.sheet ) ]
-                    , placeholder textAreaPlaceholder
+                    , placeholder "Paste a chord sheet or select one from the menu below."
                     , value (content model.sheet)
                     , onInput SetSheet
                     , spellcheck False
@@ -227,20 +239,10 @@ view model =
             , map (renderIfSheetNonEmpty model.sheet)
                 [ section [ class "row" ] (viewOptions model)
                 , section [ class "charts" ] (viewCharts model)
-                , section [ class "sheet-output" ] (map (viewLine model.shift) model.parsedSheet)
+                , section [ class "sheet-output" ] (map (viewToken model.shift) model.parsedSheet)
                 ]
             ]
         )
-
-
-viewLine : Shift -> ParsedLine -> Html Msg
-viewLine sh line =
-    case line of
-        Ok tokens ->
-            div [] (map (viewToken sh) tokens)
-
-        Err e ->
-            span [] [ text (Parser.deadEndsToString e) ]
 
 
 viewToken : Shift -> Token -> Html Msg
@@ -372,22 +374,3 @@ capitalize s =
 
         [] ->
             s
-
-
-textAreaPlaceholder : String
-textAreaPlaceholder =
-    """Paste chord sheet.
-Make sure that chords are surrounded with square brackets.
-
-[G]               [Gsus2]  [G]             [G]     [Gsus2]  [G]   [C]    [C]    [C]    [C]
-Such is the way of     the world, You can ne  -   ver know
-
-[G]                 [Gsus2]  [G]              [G]   [Gsus2]  [G]   [C]     [C]    [C]    [C]
-Just where to put all    your faith And how will   it  grow
-
-      [D]         [G]                           [C]        [Cadd9]  [C]  [Cadd9]
-Gonna rise up, Bringing back holes in dark memories
-
-      [D]         [G]                [C]        [C]    [C]   [C6]
-Gonna rise up, Turning mistakes into gold
-"""
