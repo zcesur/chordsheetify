@@ -19,8 +19,11 @@ description:         Please see the README on GitHub at <https://github.com/zces
 
 dependencies:
 - base >= 4.7 && < 5
+- bytestring
 - elm-bridge
 - lens
+- postgresql-simple
+- resource-pool
 - servant-elm
 - servant-server
 - servant-swagger
