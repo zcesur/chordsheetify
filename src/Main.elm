@@ -236,9 +236,9 @@ view model =
                     ]
                     []
               ]
+            , [ section [ class "row" ] (viewOptions model) ]
             , map (renderIfSheetNonEmpty model.sheet)
-                [ section [ class "row" ] (viewOptions model)
-                , section [ class "charts" ] (viewCharts model)
+                [ section [ class "charts" ] (viewCharts model)
                 , section [ class "sheet-output" ] (map (viewToken model.shift) model.parsedSheet)
                 ]
             ]
