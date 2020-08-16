@@ -135,7 +135,7 @@ saveSheet =
 
 type Msg
     = SetSheet String
-    | SetSheetId Api.SheetId
+    | SetSheetId (Maybe Api.SheetId)
     | SetInstrument String
     | SetChord (Maybe Chord)
     | Decremented
@@ -160,8 +160,13 @@ update msg model =
             ( { model | sheet = NewSheet x, parsedSheet = Chords.parseSheet x, sheetId = Nothing }, saveSheet x )
 
         SetSheetId x ->
-            ( { model | sheetId = Just x }
-            , Api.getApiSheetsById x GotSheet
+            ( { model | sheetId = x }
+            , case x of
+                Just id ->
+                    Api.getApiSheetsById id GotSheet
+
+                Nothing ->
+                    Cmd.none
             )
 
         SetInstrument x ->
@@ -319,7 +324,7 @@ viewSheetOptions { sheet, sheetId, sheetList } =
 
         viewSheetOpt selectedId { id, name } =
             option
-                [ value id, selected (selectedId == Just id) ]
+                [ value (String.fromInt id), selected (selectedId == Just id) ]
                 [ text name ]
     in
     case sheetList of
@@ -328,7 +333,7 @@ viewSheetOptions { sheet, sheetId, sheetList } =
 
         Just sheets ->
             select
-                [ onInput SetSheetId, disabled loading ]
+                [ onInput (String.toInt >> SetSheetId), disabled loading ]
                 (option [ disabled True, selected (sheetId == Nothing) ] [ text "Select a sheet" ] :: map (viewSheetOpt sheetId) sheets)
 
 
