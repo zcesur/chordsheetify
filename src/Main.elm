@@ -82,13 +82,19 @@ decodeStoredSheet =
 parseSheet : String -> List Token
 parseSheet =
     String.toList
-        >> groupWhile (\x y -> xor (isMusical x) (isMusical y) |> not)
+        >> groupWhile (\x y -> xor (isWord x) (isWord y) |> not)
         >> List.map (fromNonEmpty >> String.fromList >> toToken)
 
 
-isMusical : Char -> Bool
-isMusical c =
-    Char.isAlphaNum c || List.member c [ '+', '-', '#', '/' ]
+isAscii : Char -> Bool
+isAscii char =
+    Char.toCode char <= 0x7F
+
+
+isWord : Char -> Bool
+isWord c =
+    (isAscii c && (Char.isAlphaNum c || List.member c [ '+', '-', '#', '/' ]))
+        || not (isAscii c)
 
 
 toToken : String -> Token
