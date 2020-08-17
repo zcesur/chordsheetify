@@ -85,10 +85,25 @@ parseSheet =
         isMusical : Char -> Bool
         isMusical c =
             List.member c [ '+', '-', '#', '/' ]
+
+        consCompact : Token -> List Token -> List Token
+        consCompact x ys =
+            case ys of
+                t :: ts ->
+                    case ( x, t ) of
+                        ( Lyrics a, Lyrics b ) ->
+                            Lyrics (a ++ b) :: ts
+
+                        _ ->
+                            x :: ys
+
+                [] ->
+                    x :: ys
     in
     String.toList
         >> List.groupWhile (\x y -> xor (isWordSymbol x) (isWordSymbol y) |> not)
         >> List.map (fromNonEmpty >> String.fromList >> parseToken)
+        >> List.foldr consCompact []
 
 
 parseToken : String -> Token
