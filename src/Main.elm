@@ -3,7 +3,7 @@ module Main exposing (main)
 import Api
 import Browser
 import Chart
-import Chords exposing (Chord(..), Token(..), parseChord)
+import Chords exposing (Chord(..), Token(..), Voicing, parseChord)
 import Chords.Note as Note
 import Html exposing (Html, button, div, node, option, section, select, span, strong, text, textarea)
 import Html.Attributes exposing (class, classList, disabled, placeholder, selected, spellcheck, value)
@@ -125,6 +125,20 @@ content sheet =
 transpose : Shift -> Chord -> Chord
 transpose sh (Chord note quality) =
     Chord (Note.transpose (Shift.toInt sh) note) quality
+
+
+toChart : Instrument -> Chord -> Maybe ( Chord, Voicing )
+toChart instrument chord =
+    let
+        config =
+            { tuning = Instrument.defaultTuning instrument, numFrets = 10 }
+    in
+    case Instrument.voicings instrument config chord of
+        [] ->
+            Nothing
+
+        v :: _ ->
+            Just ( chord, v )
 
 
 toChord : Token -> Maybe Chord
@@ -271,25 +285,6 @@ viewChord sh x =
         |> strong [ onMouseOver (SetChord (Just x)), onMouseLeave (SetChord Nothing) ]
 
 
-viewChart : Instrument -> Chord -> Html Msg
-viewChart instrument chord =
-    let
-        config =
-            { tuning = Instrument.defaultTuning instrument
-            , numFrets = 10
-            }
-
-        name =
-            Chords.toString chord
-    in
-    case Instrument.voicings instrument config chord of
-        [] ->
-            text ("Could not find voicing for chord " ++ name)
-
-        first :: _ ->
-            Chart.view name first
-
-
 viewInstrumentOpt : Instrument -> Html Msg
 viewInstrumentOpt i =
     option
@@ -299,19 +294,25 @@ viewInstrumentOpt i =
 
 viewCharts : Model -> List (Html Msg)
 viewCharts model =
-    model.parsedSheet |> sheetToChords |> map (viewChordChart model)
+    model.parsedSheet
+        |> sheetToChords
+        |> map (transpose model.shift)
+        |> filterMap (toChart model.instrument)
+        |> map (viewChart model)
 
 
-viewChordChart : Model -> Chord -> Html Msg
-viewChordChart model chord =
-    chord
-        |> transpose model.shift
-        |> viewChart model.instrument
+viewChart : Model -> ( Chord, Voicing ) -> Html Msg
+viewChart model ( chord, voicing ) =
+    let
+        hoveredChord =
+            Maybe.map (transpose model.shift >> Chords.toString) model.chord
+    in
+    Chart.view (Chords.toString chord) voicing
         |> singleton
         |> div
             [ classList
                 [ ( "chart", True )
-                , ( "active", Just (Chords.toString chord) == Maybe.map Chords.toString model.chord )
+                , ( "active", Just (Chords.toString chord) == hoveredChord )
                 ]
             ]
 
