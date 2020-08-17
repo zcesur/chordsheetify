@@ -12,8 +12,7 @@ import Http
 import Instrument exposing (Instrument(..))
 import Json.Decode as Decode
 import Json.Encode as Encode
-import List exposing (concat, filterMap, map, singleton)
-import List.Extra exposing (groupWhile, uniqueBy)
+import List.Extra as List
 import Ports
 import Shift exposing (Shift)
 
@@ -40,7 +39,7 @@ type alias Model =
     { sheet : Sheet
     , sheetList : Maybe (List Api.Sheet)
     , sheetId : Maybe Api.SheetId
-    , parsedSheet : ParsedSheet
+    , parsedSheet : List Token
     , shift : Shift
     , instrument : Instrument
     , chord : Maybe Chord
@@ -52,15 +51,13 @@ type Sheet
     | LoadedSheet Api.Sheet
 
 
-type alias ParsedSheet =
-    List Token
-
-
 init : Maybe String -> ( Model, Cmd Msg )
 init flags =
     let
         storedSheet =
-            flags |> Maybe.andThen decodeStoredSheet |> Maybe.withDefault ""
+            flags
+                |> Maybe.andThen (Decode.decodeString Decode.string >> Result.toMaybe)
+                |> Maybe.withDefault ""
     in
     ( { sheet = NewSheet storedSheet
       , sheetList = Nothing
@@ -74,46 +71,33 @@ init flags =
     )
 
 
-decodeStoredSheet : String -> Maybe String
-decodeStoredSheet =
-    Decode.decodeString Decode.string >> Result.toMaybe
-
-
 parseSheet : String -> List Token
 parseSheet =
+    let
+        isWordSymbol : Char -> Bool
+        isWordSymbol c =
+            Char.isAlphaNum c || isMusical c || not (isAscii c)
+
+        isAscii : Char -> Bool
+        isAscii char =
+            Char.toCode char <= 0x7F
+
+        isMusical : Char -> Bool
+        isMusical c =
+            List.member c [ '+', '-', '#', '/' ]
+    in
     String.toList
-        >> groupWhile (\x y -> xor (isWord x) (isWord y) |> not)
-        >> List.map (fromNonEmpty >> String.fromList >> toToken)
+        >> List.groupWhile (\x y -> xor (isWordSymbol x) (isWordSymbol y) |> not)
+        >> List.map (fromNonEmpty >> String.fromList >> parseToken)
 
 
-isAscii : Char -> Bool
-isAscii char =
-    Char.toCode char <= 0x7F
-
-
-isWord : Char -> Bool
-isWord c =
-    (isAscii c && (Char.isAlphaNum c || List.member c [ '+', '-', '#', '/' ]))
-        || not (isAscii c)
-
-
-toToken : String -> Token
-toToken s =
+parseToken : String -> Token
+parseToken s =
     s |> parseChord |> Result.map Parsed |> Result.withDefault (Lyrics s)
 
 
-fromNonEmpty : ( a, List a ) -> List a
-fromNonEmpty =
-    uncurry (::)
-
-
-uncurry : (a -> b -> c) -> ( a, b ) -> c
-uncurry f ( x, y ) =
-    f x y
-
-
-content : Sheet -> String
-content sheet =
+stringFromSheet : Sheet -> String
+stringFromSheet sheet =
     case sheet of
         NewSheet s ->
             s
@@ -122,13 +106,18 @@ content sheet =
             s.content
 
 
+sheetNonEmpty : Sheet -> Bool
+sheetNonEmpty sheet =
+    String.trim (stringFromSheet sheet) /= ""
+
+
 transpose : Shift -> Chord -> Chord
 transpose sh (Chord note quality) =
     Chord (Note.transpose (Shift.toInt sh) note) quality
 
 
-toChart : Instrument -> Chord -> Maybe ( Chord, Voicing )
-toChart instrument chord =
+chartFromChord : Instrument -> Chord -> Maybe ( Chord, Voicing )
+chartFromChord instrument chord =
     let
         config =
             { tuning = Instrument.defaultTuning instrument, numFrets = 10 }
@@ -141,24 +130,18 @@ toChart instrument chord =
             Just ( chord, v )
 
 
-toChord : Token -> Maybe Chord
-toChord token =
-    case token of
-        Parsed chord ->
-            Just chord
+chordsFromTokens : List Token -> List Chord
+chordsFromTokens =
+    let
+        toChord token =
+            case token of
+                Parsed chord ->
+                    Just chord
 
-        _ ->
-            Nothing
-
-
-sheetToChords : ParsedSheet -> List Chord
-sheetToChords =
-    filterMap toChord >> uniqueBy Chords.toString
-
-
-saveSheet : String -> Cmd Msg
-saveSheet =
-    Encode.string >> Encode.encode 0 >> Ports.storeSheet
+                _ ->
+                    Nothing
+    in
+    List.filterMap toChord >> List.uniqueBy Chords.toString
 
 
 
@@ -174,15 +157,6 @@ type Msg
     | Incremented
     | GotSheet (Result Http.Error Api.Sheet)
     | GotSheetList (Result Http.Error (List Api.Sheet))
-
-
-updateSheet : Model -> Api.Sheet -> Maybe Model
-updateSheet model sheet =
-    if Just sheet.id == model.sheetId then
-        Just { model | sheet = LoadedSheet sheet, parsedSheet = parseSheet sheet.content }
-
-    else
-        Nothing
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -229,6 +203,20 @@ update msg model =
                     ( model, Cmd.none )
 
 
+updateSheet : Model -> Api.Sheet -> Maybe Model
+updateSheet model sheet =
+    if Just sheet.id == model.sheetId then
+        Just { model | sheet = LoadedSheet sheet, parsedSheet = parseSheet sheet.content }
+
+    else
+        Nothing
+
+
+saveSheet : String -> Cmd Msg
+saveSheet =
+    Encode.string >> Encode.encode 0 >> Ports.storeSheet
+
+
 
 -- SUBSCRIPTIONS
 
@@ -244,35 +232,42 @@ subscriptions _ =
 
 view : Model -> Html Msg
 view model =
+    let
+        renderIfSheetNonEmpty html =
+            if sheetNonEmpty model.sheet then
+                html
+
+            else
+                text ""
+    in
     node "main"
         [ class "container" ]
-        (concat
-            [ [ textarea
-                    [ classList [ ( "sheet-input", True ), ( "has-content", sheetNonEmpty model.sheet ) ]
-                    , placeholder "Paste a chord sheet or select one from the menu below."
-                    , value (content model.sheet)
-                    , onInput SetSheet
-                    , spellcheck False
-                    ]
-                    []
-              ]
-            , [ section [ class "row" ] (viewOptions model) ]
-            , map (renderIfSheetNonEmpty model.sheet)
-                [ section [ class "charts" ] (viewCharts model)
-                , section [ class "sheet-output" ] (map (viewToken model.shift) model.parsedSheet)
-                ]
+        [ textarea
+            [ classList [ ( "sheet-input", True ), ( "has-content", sheetNonEmpty model.sheet ) ]
+            , placeholder "Paste a chord sheet or select one from the menu below."
+            , value (stringFromSheet model.sheet)
+            , onInput SetSheet
+            , spellcheck False
             ]
-        )
+            []
+        , section [ class "row" ] (viewOptions model)
+        , section [ class "charts" ] (viewCharts model) |> renderIfSheetNonEmpty
+        , section [ class "sheet-output" ] (List.map (viewToken model.shift) model.parsedSheet) |> renderIfSheetNonEmpty
+        ]
 
 
 viewToken : Shift -> Token -> Html Msg
 viewToken sh token =
-    case token of
-        Lyrics s ->
-            span [] [ text s ]
+    let
+        el =
+            case token of
+                Lyrics s ->
+                    text s
 
-        Parsed chord ->
-            span [] [ viewChord sh chord ]
+                Parsed chord ->
+                    viewChord sh chord
+    in
+    span [] [ el ]
 
 
 viewChord : Shift -> Chord -> Html Msg
@@ -281,24 +276,17 @@ viewChord sh x =
         |> transpose sh
         |> Chords.toString
         |> text
-        |> singleton
+        |> List.singleton
         |> strong [ onMouseOver (SetChord (Just x)), onMouseLeave (SetChord Nothing) ]
-
-
-viewInstrumentOpt : Instrument -> Html Msg
-viewInstrumentOpt i =
-    option
-        [ value (Instrument.toString i) ]
-        [ text (capitalize (Instrument.toString i)) ]
 
 
 viewCharts : Model -> List (Html Msg)
 viewCharts model =
     model.parsedSheet
-        |> sheetToChords
-        |> map (transpose model.shift)
-        |> filterMap (toChart model.instrument)
-        |> map (viewChart model)
+        |> chordsFromTokens
+        |> List.map (transpose model.shift)
+        |> List.filterMap (chartFromChord model.instrument)
+        |> List.map (viewChart model)
 
 
 viewChart : Model -> ( Chord, Voicing ) -> Html Msg
@@ -308,13 +296,26 @@ viewChart model ( chord, voicing ) =
             Maybe.map (transpose model.shift >> Chords.toString) model.chord
     in
     Chart.view (Chords.toString chord) voicing
-        |> singleton
+        |> List.singleton
         |> div
             [ classList
                 [ ( "chart", True )
                 , ( "active", Just (Chords.toString chord) == hoveredChord )
                 ]
             ]
+
+
+viewOptions : Model -> List (Html Msg)
+viewOptions model =
+    [ div [ class "column column-33" ] [ viewSheetOptions model ]
+    , div [ class "column column-33" ] [ select [ onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]) ]
+    , div [ class "column column-33" ]
+        [ div [ class "button-group" ]
+            [ button [ onClick Decremented ] [ text "-1" ]
+            , button [ onClick Incremented ] [ text "+1" ]
+            ]
+        ]
+    ]
 
 
 viewSheetOptions : Model -> Html Msg
@@ -343,34 +344,18 @@ viewSheetOptions { sheet, sheetId, sheetList } =
         Just sheets ->
             select
                 [ onInput (String.toInt >> SetSheetId), disabled loading ]
-                (option [ disabled True, selected (sheetId == Nothing) ] [ text "Select a sheet" ] :: map (viewSheetOpt sheetId) sheets)
+                (option [ disabled True, selected (sheetId == Nothing) ] [ text "Select a sheet" ] :: List.map (viewSheetOpt sheetId) sheets)
 
 
-viewOptions : Model -> List (Html Msg)
-viewOptions model =
-    [ div [ class "column column-33" ] [ viewSheetOptions model ]
-    , div [ class "column column-33" ] [ select [ onInput SetInstrument ] (map viewInstrumentOpt [ Guitar, Ukulele ]) ]
-    , div [ class "column column-33" ]
-        [ div [ class "button-group" ]
-            [ button [ onClick Decremented ] [ text "-1" ]
-            , button [ onClick Incremented ] [ text "+1" ]
-            ]
-        ]
-    ]
+viewInstrumentOpt : Instrument -> Html Msg
+viewInstrumentOpt i =
+    option
+        [ value (Instrument.toString i) ]
+        [ text (capitalize (Instrument.toString i)) ]
 
 
-sheetNonEmpty : Sheet -> Bool
-sheetNonEmpty sheet =
-    String.trim (content sheet) /= ""
 
-
-renderIfSheetNonEmpty : Sheet -> Html Msg -> Html Msg
-renderIfSheetNonEmpty sheet html =
-    if sheetNonEmpty sheet then
-        html
-
-    else
-        text ""
+-- UTILITIES
 
 
 capitalize : String -> String
@@ -381,3 +366,13 @@ capitalize s =
 
         [] ->
             s
+
+
+fromNonEmpty : ( a, List a ) -> List a
+fromNonEmpty =
+    uncurry (::)
+
+
+uncurry : (a -> b -> c) -> ( a, b ) -> c
+uncurry f ( x, y ) =
+    f x y
