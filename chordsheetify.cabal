@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a6f68af189e97b300952d7b3f02d9654765a1adb2921f87f42a63b9fce725d72
+-- hash: 8770b9ab1f80ff60f8a2f31b18343376131dde9575485081b5834b6d5198f519
 
 name:           chordsheetify
 version:        0.1.0.0
@@ -44,6 +44,7 @@ executable chordsheetify-exe
     , servant-swagger-ui
     , swagger2
     , wai
+    , wai-app-static
     , wai-cors
     , warp
   default-language: Haskell2010
@@ -70,6 +71,7 @@ test-suite chordsheetify-test
     , servant-swagger-ui
     , swagger2
     , wai
+    , wai-app-static
     , wai-cors
     , warp
   default-language: Haskell2010

@@ -31,6 +31,7 @@ dependencies:
 - swagger2
 - wai
 - wai-cors
+- wai-app-static
 - warp
 
 executables:

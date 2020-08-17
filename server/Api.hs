@@ -16,8 +16,8 @@ import           Servant
 import           Servant.Swagger.UI
 import qualified Elm.Derive
 
-type Api = SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> BasicApi
-type BasicApi = "api" :> SheetApi
+type Api = SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> RestApi :<|> Raw
+type RestApi = "api" :> SheetApi
 
 -- brittany-disable-next-binding
 type SheetApi =
@@ -27,8 +27,8 @@ type SheetApi =
 api :: Proxy Api
 api = Proxy
 
-basicApi :: Proxy BasicApi
-basicApi = Proxy
+restApi :: Proxy RestApi
+restApi = Proxy
 
 newtype SheetId = SheetId Int deriving (Show, Generic)
 instance FromField SheetId where
