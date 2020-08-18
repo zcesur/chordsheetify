@@ -9,7 +9,6 @@ import           Data.Swagger
 import           Database.PostgreSQL.Simple
 import           Network.Wai
 import           Network.Wai.Application.Static
-import           Network.Wai.Middleware.Cors
 import           Servant
 import           Servant.Swagger
 import           Servant.Swagger.UI
@@ -18,7 +17,7 @@ import           WaiAppStatic.Types
 import           Api
 
 mkApp :: Pool Connection -> IO Application
-mkApp conns = return $ simpleCors $ serve api $ server conns
+mkApp conns = return $ serve api $ server conns
 
 server :: Pool Connection -> Server Api
 server conns =
@@ -52,4 +51,3 @@ apiSwagger :: Swagger
 apiSwagger = toSwagger restApi
   & info.title   .~ "Chordsheetify API"
   & info.version .~ "1.0.0"
-  & host         ?~ "chordsheetify.herokuapp.com"

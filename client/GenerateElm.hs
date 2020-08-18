@@ -6,13 +6,12 @@ import           Servant.Elm                    ( DefineElm(DefineElm)
                                                 , defElmImports
                                                 , defElmOptions
                                                 , generateElmModuleWith
-                                                , urlPrefix
                                                 )
 import           Api
 
 main :: IO ()
 main = generateElmModuleWith
-  (defElmOptions { urlPrefix = Static "https://chordsheetify.herokuapp.com" })
+  defElmOptions
   ["Api"]
   defElmImports
   "client/src"
