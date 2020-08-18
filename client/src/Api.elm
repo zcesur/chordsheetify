@@ -57,7 +57,7 @@ getApiSheets toMsg =
             , headers =
                 []
             , url =
-                Url.Builder.crossOrigin "https://chordsheetify.herokuapp.com"
+                Url.Builder.crossOrigin ""
                     [ "api"
                     , "sheets"
                     ]
@@ -86,7 +86,7 @@ getApiSheetsById capture_id toMsg =
             , headers =
                 []
             , url =
-                Url.Builder.crossOrigin "https://chordsheetify.herokuapp.com"
+                Url.Builder.crossOrigin ""
                     [ "api"
                     , "sheets"
                     , (capture_id |> String.fromInt)
