@@ -6,7 +6,6 @@ import           Data.Pool
 import           Database.PostgreSQL.Simple
 import           Network.Wai.Handler.Warp
 import           System.Environment             ( lookupEnv )
-import           System.IO
 import           Text.Read                      ( readMaybe )
 import qualified Data.ByteString.Char8         as B
 
@@ -16,15 +15,11 @@ type DBConnectionString = ByteString
 
 main :: IO ()
 main = do
-  dbEnv   <- lookupEnv "DATABASE_URL"
-  portEnv <- lookupEnv "PORT"
-  let connStr  = fromMaybe defaultConnStr dbEnv
-      port     = fromMaybe defaultPort (portEnv >>= readMaybe)
-      settings = setPort port $ setBeforeMainLoop
-        (hPutStrLn stderr ("listening on port " ++ show port))
-        defaultSettings
-  pool <- initConnectionPool (B.pack connStr)
-  runSettings settings =<< mkApp pool
+  port    <- fromMaybe defaultPort . (readMaybe =<<) <$> lookupEnv "PORT"
+  connStr <- B.pack . fromMaybe defaultConnStr <$> lookupEnv "DATABASE_URL"
+  app     <- mkApp <$> initConnectionPool connStr
+  runSettings (setPort port defaultSettings) app
+
 
 initConnectionPool :: DBConnectionString -> IO (Pool Connection)
 initConnectionPool connStr =

@@ -16,8 +16,8 @@ import           WaiAppStatic.Types
 
 import           Api
 
-mkApp :: Pool Connection -> IO Application
-mkApp conns = return $ serve api $ server conns
+mkApp :: Pool Connection -> Application
+mkApp conns = serve api $ server conns
 
 server :: Pool Connection -> Server Api
 server conns =
