@@ -377,7 +377,7 @@ viewOptions model =
         [ div [ class "flex justify-center space-x-4" ]
             [ button [ class "shadow rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Decremented ] [ Icon.minus |> Icon.toHtml [] ]
             , button [ class "shadow rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Incremented ] [ Icon.plus |> Icon.toHtml [] ]
-            , button [ class "shadow rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick (SetMode newMode) ] [ newMode |> iconFromMode |> Icon.toHtml [] ]
+            , button [ class "shadow rounded py-2 px-3 bg-green-500 border border-green-500 hover:bg-green-600 text-white", onClick (SetMode newMode) ] [ newMode |> iconFromMode |> Icon.toHtml [] ]
             ]
         ]
     ]
