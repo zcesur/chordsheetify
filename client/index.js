@@ -1,6 +1,5 @@
 import { Elm } from "./src/Main";
-
-import "./src/styles/index.scss";
+import "./css/index.scss";
 
 const lsKey = "sheet";
 
