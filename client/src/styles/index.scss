@@ -1,124 +1,35 @@
-$primary-color: #c83737;
-$secondary-color: #5a7a93;
-$bg-color: #f8f8f8;
-$fg-color: #2c3746;
-$black: #000;
-$gray: #c2bdc2;
-$white: #fff;
+$primary-color: theme('colors.blue.500');
+$fg-color: theme('colors.gray.900');
+$bg-color: theme('colors.gray.100');
 
-.button,
-button,
-input[type='button'],
-input[type='reset'],
-input[type='submit'] {
-  background-color: $secondary-color;
-  border: 0.1rem solid $secondary-color;
-}
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
-.button[disabled]:focus, .button[disabled]:hover,
-button[disabled]:focus,
-button[disabled]:hover,
-input[type='button'][disabled]:focus,
-input[type='button'][disabled]:hover,
-input[type='reset'][disabled]:focus,
-input[type='reset'][disabled]:hover,
-input[type='submit'][disabled]:focus,
-input[type='submit'][disabled]:hover {
-  background-color: $secondary-color;
-  border-color: $secondary-color;
-}
-
-.button.button-outline,
-button.button-outline,
-input[type='button'].button-outline,
-input[type='reset'].button-outline,
-input[type='submit'].button-outline {
-  color: $secondary-color;
-}
-
-.button.button-outline[disabled]:focus, .button.button-outline[disabled]:hover,
-button.button-outline[disabled]:focus,
-button.button-outline[disabled]:hover,
-input[type='button'].button-outline[disabled]:focus,
-input[type='button'].button-outline[disabled]:hover,
-input[type='reset'].button-outline[disabled]:focus,
-input[type='reset'].button-outline[disabled]:hover,
-input[type='submit'].button-outline[disabled]:focus,
-input[type='submit'].button-outline[disabled]:hover {
-  color: $secondary-color;
-}
-
-.button.button-clear,
-button.button-clear,
-input[type='button'].button-clear,
-input[type='reset'].button-clear,
-input[type='submit'].button-clear {
-  color: $secondary-color;
-}
-
-.button.button-clear[disabled]:focus, .button.button-clear[disabled]:hover,
-button.button-clear[disabled]:focus,
-button.button-clear[disabled]:hover,
-input[type='button'].button-clear[disabled]:focus,
-input[type='button'].button-clear[disabled]:hover,
-input[type='reset'].button-clear[disabled]:focus,
-input[type='reset'].button-clear[disabled]:hover,
-input[type='submit'].button-clear[disabled]:focus,
-input[type='submit'].button-clear[disabled]:hover {
-  color: $secondary-color;
-}
-
-pre {
-  border-left: 0.3rem solid $secondary-color;
-}
-
-input[type='email']:focus,
-input[type='number']:focus,
-input[type='password']:focus,
-input[type='search']:focus,
-input[type='tel']:focus,
-input[type='text']:focus,
-input[type='url']:focus,
-textarea:focus,
-select:focus {
-  border-color: $secondary-color;
-}
-
-select:focus {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="14" viewBox="0 0 29 14" width="29"><path fill="#{$secondary-color}" d="M9.37727 3.625l5.08154 6.93523L19.54036 3.625"/></svg>');
-}
-
-a {
-  color: $primary-color;
+:focus{
+  outline: none !important;
 }
 
 body {
-  background: $bg-color;
-  color: $fg-color;
+  background-color: $bg-color;
 }
 
 .sheet-input {
   $margin: 16px;
   transition: all .4s ease;
   height: calc(100vh - #{2 * $margin} - 56px);
-  margin: $margin 0;
-  resize: none;
-  display: block;
-  overflow: auto;
-  background: $white;
-  box-shadow: 0px 2px 4px -1px rgba(0,0,0,0.2), 0px 4px 5px 0px rgba(0,0,0,0.14), 0px 1px 10px 0px rgba(0,0,0,0.12);
 
   &.has-content {
     height: calc(50vh - #{2 * $margin});
-    box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
+  }
 
-    &:hover {
-      box-shadow: 0px 2px 4px -1px rgba(0,0,0,0.2), 0px 4px 5px 0px rgba(0,0,0,0.14), 0px 1px 10px 0px rgba(0,0,0,0.12);
-    }
+  & > textarea {
+    resize: none;
   }
 }
 
 .sheet-output {
+  color: $fg-color;
   white-space: pre-wrap;
   strong {
     cursor: pointer;
@@ -128,21 +39,10 @@ body {
   }
 }
 
-.button-group {
-  display: flex;
-  justify-content: center;
-
-  & > button {
-    margin: 0 8px;
-  }
-}
-
 .charts {
-  display: flex;
-  align-items: center;
-
-  & > .chart {
-    max-width: 120px;
+  & .chart {
+    max-width: 7rem;
+    transition: all .2s ease;
 
     & > svg {
       stroke: $fg-color;
@@ -150,10 +50,6 @@ body {
       & > text {
         stroke: none;
       }
-    }
-    &.active > svg {
-      stroke: $primary-color;
-      fill: $primary-color;
     }
   }
 }

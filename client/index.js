@@ -1,7 +1,5 @@
 import { Elm } from "./src/Main";
 
-import "normalize.css/normalize.css";
-import "milligram/dist/milligram.css";
 import "./src/styles/index.scss";
 
 const lsKey = "sheet";

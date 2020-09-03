@@ -15,6 +15,8 @@ import Json.Encode as Encode
 import List.Extra as List
 import Ports
 import Shift exposing (Shift)
+import Svg
+import Svg.Attributes as Attr
 
 
 
@@ -256,17 +258,19 @@ view model =
                 text ""
     in
     node "main"
-        [ class "container" ]
-        [ textarea
-            [ classList [ ( "sheet-input", True ), ( "has-content", sheetNonEmpty model.sheet ) ]
-            , placeholder "Paste a chord sheet or select one from the menu below."
-            , value (stringFromSheet model.sheet)
-            , onInput SetSheet
-            , spellcheck False
+        [ class "app min-h-screen p-8 font-sans space-y-4 md:container mx-auto" ]
+        [ section [ classList [ ( "sheet-input border rounded flex flex-col shadow bg-white", True ), ( "has-content", sheetNonEmpty model.sheet ) ] ]
+            [ textarea
+                [ class "sheet-input text-gray-900 flex-1 p-2 m-1 bg-transparent"
+                , placeholder "Paste a chord sheet or select one from the menu below."
+                , value (stringFromSheet model.sheet)
+                , onInput SetSheet
+                , spellcheck False
+                ]
+                []
             ]
-            []
-        , section [ class "row" ] (viewOptions model)
-        , section [ class "charts" ] (viewCharts model) |> renderIfSheetNonEmpty
+        , section [ class "row flex space-x-4" ] (viewOptions model)
+        , section [ class "charts flex flex-wrap" ] (viewCharts model) |> renderIfSheetNonEmpty
         , section [ class "sheet-output" ] (List.map (viewToken model.shift) model.parsedSheet) |> renderIfSheetNonEmpty
         ]
 
@@ -309,25 +313,29 @@ viewChart model ( chord, voicing ) =
     let
         hoveredChord =
             Maybe.map (transpose model.shift >> Chords.toString) model.chord
+
+        active =
+            Just (Chords.toString chord) == hoveredChord
     in
     Chart.view (Chords.toString chord) voicing
         |> List.singleton
         |> div
             [ classList
-                [ ( "chart", True )
-                , ( "active", Just (Chords.toString chord) == hoveredChord )
+                [ ( "chart border rounded", True )
+                , ( "shadow", not active )
+                , ( "shadow-2xl", active )
                 ]
             ]
 
 
 viewOptions : Model -> List (Html Msg)
 viewOptions model =
-    [ div [ class "column column-33" ] [ viewSheetOptions model ]
-    , div [ class "column column-33" ] [ select [ onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]) ]
-    , div [ class "column column-33" ]
-        [ div [ class "button-group" ]
-            [ button [ onClick Decremented ] [ text "-1" ]
-            , button [ onClick Incremented ] [ text "+1" ]
+    [ div [ class "col w-1/3" ] [ div [ class "relative" ] [ viewSheetOptions model, selectArrow ] ]
+    , div [ class "col w-1/3" ] [ div [ class "relative" ] [ select [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800 leading-tight", onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]), selectArrow ] ]
+    , div [ class "col w-1/3" ]
+        [ div [ class "flex space-x-4" ]
+            [ button [ class "shadow appearance-none rounded w-full py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white leading-tight", onClick Decremented ] [ text "-1" ]
+            , button [ class "shadow appearance-none rounded w-full py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white leading-tight", onClick Incremented ] [ text "+1" ]
             ]
         ]
     ]
@@ -354,11 +362,11 @@ viewSheetOptions { sheet, sheetId, sheetList } =
     in
     case sheetList of
         Nothing ->
-            select [ disabled True ] [ option [] [ text "Loading sheets..." ] ]
+            select [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800 leading-tight", disabled True ] [ option [] [ text "Loading sheets..." ] ]
 
         Just sheets ->
             select
-                [ onInput (String.toInt >> SetSheetId), disabled loading ]
+                [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800 leading-tight", onInput (String.toInt >> SetSheetId), disabled loading ]
                 (option [ disabled True, selected (sheetId == Nothing) ] [ text "Select a sheet" ] :: List.map (viewSheetOpt sheetId) sheets)
 
 
@@ -367,6 +375,11 @@ viewInstrumentOpt i =
     option
         [ value (Instrument.toString i) ]
         [ text (capitalize (Instrument.toString i)) ]
+
+
+selectArrow : Html Msg
+selectArrow =
+    div [ class "pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700" ] [ Svg.svg [ Attr.viewBox "0 0 20 20", Attr.class "fill-current h-4 w-4" ] [ Svg.path [ Attr.d "M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" ] [] ] ]
 
 
 
