@@ -175,6 +175,14 @@ chordsFromTokens =
     List.filterMap toChord >> List.uniqueBy Chords.toString
 
 
+voicings : Model -> List ( Chord, Voicing )
+voicings model =
+    model.parsedSheet
+        |> chordsFromTokens
+        |> List.map (transpose model.shift)
+        |> List.filterMap (chartFromChord model.instrument)
+
+
 toggleMode : Mode -> Mode
 toggleMode m =
     case m of
@@ -298,7 +306,7 @@ view model =
     node "main"
         [ class "app min-h-screen p-8 font-sans space-y-4 md:container mx-auto" ]
         [ section [ class "sm:flex sm:space-x-4 sm:space-y-0 space-y-4" ] (viewOptions model)
-        , section [ class "charts flex flex-wrap" ] (viewCharts model) |> renderIf (sheetNonEmpty model.sheet)
+        , section [ class "charts flex flex-wrap" ] (List.map (viewVoicing model) (voicings model)) |> renderIf (not <| List.isEmpty (voicings model))
         , section [ class "sheet-input border rounded shadow bg-white" ]
             [ textarea
                 [ class "sheet-input text-gray-900 p-3 bg-transparent w-full resize-none min-h-screen"
@@ -338,17 +346,8 @@ viewChord sh x =
         |> strong [ onMouseOver (SetChord (Just x)), onMouseLeave (SetChord Nothing) ]
 
 
-viewCharts : Model -> List (Html Msg)
-viewCharts model =
-    model.parsedSheet
-        |> chordsFromTokens
-        |> List.map (transpose model.shift)
-        |> List.filterMap (chartFromChord model.instrument)
-        |> List.map (viewChart model)
-
-
-viewChart : Model -> ( Chord, Voicing ) -> Html Msg
-viewChart model ( chord, voicing ) =
+viewVoicing : Model -> ( Chord, Voicing ) -> Html Msg
+viewVoicing model ( chord, voicing ) =
     let
         hoveredChord =
             Maybe.map (transpose model.shift >> Chords.toString) model.chord
