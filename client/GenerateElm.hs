@@ -1,13 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import           Servant.Elm                    ( DefineElm(DefineElm)
-                                                , Proxy(Proxy)
-                                                , UrlPrefix(Static)
-                                                , defElmImports
-                                                , defElmOptions
-                                                , generateElmModuleWith
-                                                )
 import           Api
+import           Servant.Elm (DefineElm (DefineElm), Proxy (Proxy),
+                              UrlPrefix (Static), defElmImports, defElmOptions,
+                              generateElmModuleWith)
 
 main :: IO ()
 main = generateElmModuleWith

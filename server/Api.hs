@@ -1,20 +1,19 @@
-{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveAnyClass             #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeOperators              #-}
 
 module Api where
 
 import           Data.Swagger
-import           Database.PostgreSQL.Simple     ( FromRow )
-import           Database.PostgreSQL.Simple.FromField
-                                                ( FromField(..) )
+import           Database.PostgreSQL.Simple           (FromRow)
+import           Database.PostgreSQL.Simple.FromField (FromField (..))
+import qualified Elm.Derive
 import           GHC.Generics
 import           Servant
 import           Servant.Swagger.UI
-import qualified Elm.Derive
 
 type Api = SwaggerSchemaUI "swagger-ui" "swagger.json" :<|> RestApi :<|> Raw
 type RestApi = "api" :> SheetApi

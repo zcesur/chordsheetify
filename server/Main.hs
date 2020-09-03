@@ -1,13 +1,13 @@
 module Main where
 
-import           Data.ByteString                ( ByteString )
-import           Data.Maybe                     ( fromMaybe )
+import           Data.ByteString            (ByteString)
+import qualified Data.ByteString.Char8      as B
+import           Data.Maybe                 (fromMaybe)
 import           Data.Pool
 import           Database.PostgreSQL.Simple
 import           Network.Wai.Handler.Warp
-import           System.Environment             ( lookupEnv )
-import           Text.Read                      ( readMaybe )
-import qualified Data.ByteString.Char8         as B
+import           System.Environment         (lookupEnv)
+import           Text.Read                  (readMaybe)
 
 import           App
 
