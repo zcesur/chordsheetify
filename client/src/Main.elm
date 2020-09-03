@@ -269,7 +269,7 @@ update msg model =
 updateSheet : Model -> Api.Sheet -> Maybe Model
 updateSheet model sheet =
     if Just sheet.id == model.sheetId then
-        Just { model | sheet = LoadedSheet sheet, parsedSheet = parseSheet sheet.content }
+        Just { model | sheet = LoadedSheet sheet, parsedSheet = parseSheet sheet.content, mode = Preview }
 
     else
         Nothing
