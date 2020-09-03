@@ -16,8 +16,6 @@ import Json.Encode as Encode
 import List.Extra as List
 import Ports
 import Shift exposing (Shift)
-import Svg
-import Svg.Attributes as Attr
 
 
 
@@ -330,8 +328,8 @@ viewChart model ( chord, voicing ) =
 
 viewOptions : Model -> List (Html Msg)
 viewOptions model =
-    [ div [ class "w-full" ] [ div [ class "relative" ] [ viewSheetOptions model, selectArrow ] ]
-    , div [ class "w-full" ] [ div [ class "relative" ] [ select [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]), selectArrow ] ]
+    [ div [ class "w-full" ] [ viewSheetOptions model ]
+    , div [ class "w-full" ] [ dropdown [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]) ]
     , div []
         [ div [ class "flex justify-center space-x-4" ]
             [ button [ class "shadow appearance-none rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Decremented ] [ Icon.minus |> Icon.toHtml [] ]
@@ -362,10 +360,10 @@ viewSheetOptions { sheet, sheetId, sheetList } =
     in
     case sheetList of
         Nothing ->
-            select [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", disabled True ] [ option [] [ text "Loading sheets..." ] ]
+            dropdown [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", disabled True ] [ option [] [ text "Loading sheets..." ] ]
 
         Just sheets ->
-            select
+            dropdown
                 [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", onInput (String.toInt >> SetSheetId), disabled loading ]
                 (option [ disabled True, selected (sheetId == Nothing) ] [ text "Select a sheet" ] :: List.map (viewSheetOpt sheetId) sheets)
 
@@ -377,9 +375,14 @@ viewInstrumentOpt i =
         [ text (capitalize (Instrument.toString i)) ]
 
 
-selectArrow : Html Msg
-selectArrow =
-    div [ class "pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700" ] [ Svg.svg [ Attr.viewBox "0 0 20 20", Attr.class "fill-current h-4 w-4" ] [ Svg.path [ Attr.d "M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" ] [] ] ]
+dropdown : List (Html.Attribute msg) -> List (Html msg) -> Html msg
+dropdown attributes children =
+    div [ class "relative" ]
+        [ select attributes children
+        , div
+            [ class "pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700" ]
+            [ Icon.chevronDown |> Icon.withSize 16 |> Icon.toHtml [] ]
+        ]
 
 
 
