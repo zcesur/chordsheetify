@@ -39,11 +39,17 @@ body {
     transition: all .2s ease;
 
     & > svg {
+      transition: all .2s ease;
       stroke: $fg-color;
       fill: $fg-color;
       & > text {
         stroke: none;
       }
+    }
+
+    &.active > svg {
+      stroke: $primary-color;
+      fill: $primary-color;
     }
   }
 }

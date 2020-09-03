@@ -322,9 +322,8 @@ viewChart model ( chord, voicing ) =
         |> List.singleton
         |> div
             [ classList
-                [ ( "chart border rounded", True )
-                , ( "shadow", not active )
-                , ( "shadow-2xl", active )
+                [ ( "chart", True )
+                , ( "active rounded shadow-outline", active )
                 ]
             ]
 
