@@ -5,11 +5,11 @@ import Browser
 import Chart
 import Chords exposing (Chord(..), Token(..), Voicing, parseChord)
 import Chords.Note as Note
+import FeatherIcons as Icon
 import Html exposing (Html, button, div, node, option, section, select, span, strong, text, textarea)
 import Html.Attributes exposing (class, classList, disabled, placeholder, selected, spellcheck, value)
 import Html.Events exposing (onClick, onInput, onMouseLeave, onMouseOver)
 import Http
-import Icons
 import Instrument exposing (Instrument(..))
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -334,8 +334,8 @@ viewOptions model =
     , div [ class "w-full" ] [ div [ class "relative" ] [ select [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]), selectArrow ] ]
     , div []
         [ div [ class "flex justify-center space-x-4" ]
-            [ button [ class "shadow appearance-none rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Decremented ] [ Icons.minus ]
-            , button [ class "shadow appearance-none rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Incremented ] [ Icons.plus ]
+            [ button [ class "shadow appearance-none rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Decremented ] [ Icon.minus |> Icon.toHtml [] ]
+            , button [ class "shadow appearance-none rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Incremented ] [ Icon.plus |> Icon.toHtml [] ]
             ]
         ]
     ]
