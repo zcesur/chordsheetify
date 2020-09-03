@@ -121,10 +121,10 @@ voicings model =
 
 type Msg
     = Noop
-    | SetSheet String
+    | ChangedSheet String
     | SetSheetId (Maybe Api.SheetId)
     | SetInstrument String
-    | SetChord (Maybe Chord)
+    | HoveredOverChord (Maybe Chord)
     | SetMode Mode
     | Decremented
     | Incremented
@@ -138,7 +138,7 @@ update msg model =
         Noop ->
             ( model, Cmd.none )
 
-        SetSheet x ->
+        ChangedSheet x ->
             ( { model | sheet = NewSheet x, parsedSheet = Sheet.parse x, sheetId = Nothing }, saveSheet x )
 
         SetSheetId x ->
@@ -154,7 +154,7 @@ update msg model =
         SetInstrument x ->
             ( { model | instrument = Maybe.withDefault model.instrument (Instrument.fromString x) }, Cmd.none )
 
-        SetChord x ->
+        HoveredOverChord x ->
             ( { model | chord = x }, Cmd.none )
 
         SetMode x ->
@@ -234,7 +234,7 @@ view model =
                 [ class "text-gray-900 p-3 bg-transparent w-full resize-none min-h-screen"
                 , placeholder "Paste a chord sheet or select one from the menu below."
                 , value (Sheet.toString model.sheet)
-                , onInput SetSheet
+                , onInput ChangedSheet
                 , spellcheck False
                 ]
                 []
@@ -265,7 +265,7 @@ viewChord sh x =
         |> Chords.toString
         |> text
         |> List.singleton
-        |> strong [ onMouseOver (SetChord (Just x)), onMouseLeave (SetChord Nothing) ]
+        |> strong [ onMouseOver (HoveredOverChord (Just x)), onMouseLeave (HoveredOverChord Nothing) ]
 
 
 viewVoicing : Model -> ( Chord, Voicing ) -> Html Msg
