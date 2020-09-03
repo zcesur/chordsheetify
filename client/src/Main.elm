@@ -44,6 +44,7 @@ type alias Model =
     , shift : Shift
     , instrument : Instrument
     , chord : Maybe Chord
+    , mode : Mode
     }
 
 
@@ -52,21 +53,35 @@ type Sheet
     | LoadedSheet Api.Sheet
 
 
+type Mode
+    = Edit
+    | Preview
+
+
 init : Maybe String -> ( Model, Cmd Msg )
 init flags =
     let
-        storedSheet =
+        sheet =
             flags
                 |> Maybe.andThen (Decode.decodeString Decode.string >> Result.toMaybe)
                 |> Maybe.withDefault ""
+                |> NewSheet
+
+        mode =
+            if sheetNonEmpty sheet then
+                Preview
+
+            else
+                Edit
     in
-    ( { sheet = NewSheet storedSheet
+    ( { sheet = sheet
       , sheetList = Nothing
       , sheetId = Nothing
-      , parsedSheet = parseSheet storedSheet
+      , parsedSheet = sheet |> stringFromSheet |> parseSheet
       , shift = Shift.fromInt 0
       , instrument = Guitar
       , chord = Nothing
+      , mode = mode
       }
     , Api.getApiSheets GotSheetList
     )
@@ -160,6 +175,26 @@ chordsFromTokens =
     List.filterMap toChord >> List.uniqueBy Chords.toString
 
 
+toggleMode : Mode -> Mode
+toggleMode m =
+    case m of
+        Edit ->
+            Preview
+
+        Preview ->
+            Edit
+
+
+iconFromMode : Mode -> Icon.Icon
+iconFromMode m =
+    case m of
+        Edit ->
+            Icon.edit2
+
+        Preview ->
+            Icon.eye
+
+
 
 -- UPDATE
 
@@ -169,6 +204,7 @@ type Msg
     | SetSheetId (Maybe Api.SheetId)
     | SetInstrument String
     | SetChord (Maybe Chord)
+    | SetMode Mode
     | Decremented
     | Incremented
     | GotSheet (Result Http.Error Api.Sheet)
@@ -196,6 +232,9 @@ update msg model =
 
         SetChord x ->
             ( { model | chord = x }, Cmd.none )
+
+        SetMode x ->
+            ( { model | mode = x }, Cmd.none )
 
         Decremented ->
             ( { model | shift = Shift.decrement model.shift }, Cmd.none )
@@ -249,8 +288,8 @@ subscriptions _ =
 view : Model -> Html Msg
 view model =
     let
-        renderIfSheetNonEmpty html =
-            if sheetNonEmpty model.sheet then
+        renderIf p html =
+            if p then
                 html
 
             else
@@ -258,9 +297,11 @@ view model =
     in
     node "main"
         [ class "app min-h-screen p-8 font-sans space-y-4 md:container mx-auto" ]
-        [ section [ classList [ ( "sheet-input border rounded flex flex-col shadow bg-white", True ), ( "has-content", sheetNonEmpty model.sheet ) ] ]
+        [ section [ class "sm:flex sm:space-x-4 sm:space-y-0 space-y-4" ] (viewOptions model)
+        , section [ class "charts flex flex-wrap" ] (viewCharts model) |> renderIf (sheetNonEmpty model.sheet)
+        , section [ class "sheet-input border rounded shadow bg-white" ]
             [ textarea
-                [ class "sheet-input text-gray-900 flex-1 p-2 m-1 bg-transparent resize-none"
+                [ class "sheet-input text-gray-900 p-3 bg-transparent w-full resize-none min-h-screen"
                 , placeholder "Paste a chord sheet or select one from the menu below."
                 , value (stringFromSheet model.sheet)
                 , onInput SetSheet
@@ -268,9 +309,8 @@ view model =
                 ]
                 []
             ]
-        , section [ class "sm:flex sm:space-x-4 sm:space-y-0 space-y-4" ] (viewOptions model)
-        , section [ class "charts flex flex-wrap" ] (viewCharts model) |> renderIfSheetNonEmpty
-        , section [ class "sheet-output text-gray-900 whitespace-pre-wrap" ] (List.map (viewToken model.shift) model.parsedSheet) |> renderIfSheetNonEmpty
+            |> renderIf (model.mode == Edit)
+        , section [ class "sheet-output text-gray-900 whitespace-pre-wrap p-3" ] (List.map (viewToken model.shift) model.parsedSheet) |> renderIf (model.mode == Preview)
         ]
 
 
@@ -328,12 +368,17 @@ viewChart model ( chord, voicing ) =
 
 viewOptions : Model -> List (Html Msg)
 viewOptions model =
+    let
+        newMode =
+            toggleMode model.mode
+    in
     [ div [ class "w-full" ] [ viewSheetOptions model ]
     , div [ class "w-full" ] [ dropdown [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]) ]
     , div []
         [ div [ class "flex justify-center space-x-4" ]
-            [ button [ class "shadow appearance-none rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Decremented ] [ Icon.minus |> Icon.toHtml [] ]
-            , button [ class "shadow appearance-none rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Incremented ] [ Icon.plus |> Icon.toHtml [] ]
+            [ button [ class "shadow rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Decremented ] [ Icon.minus |> Icon.toHtml [] ]
+            , button [ class "shadow rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Incremented ] [ Icon.plus |> Icon.toHtml [] ]
+            , button [ class "shadow rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick (SetMode newMode) ] [ newMode |> iconFromMode |> Icon.toHtml [] ]
             ]
         ]
     ]

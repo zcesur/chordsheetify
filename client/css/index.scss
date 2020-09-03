@@ -14,16 +14,6 @@ body {
   background-color: $bg-color;
 }
 
-.sheet-input {
-  $margin: 16px;
-  transition: all .4s ease;
-  height: calc(100vh - #{2 * $margin} - 56px);
-
-  &.has-content {
-    height: calc(50vh - #{2 * $margin});
-  }
-}
-
 .sheet-output {
   strong {
     cursor: pointer;
