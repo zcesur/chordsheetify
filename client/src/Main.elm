@@ -4,7 +4,7 @@ import Api
 import Browser
 import Button exposing (button)
 import Chart
-import Chords exposing (Chord(..), Token(..), Voicing, parseChord)
+import Chords exposing (Chord(..), Token(..), Voicing)
 import Chords.Note as Note
 import FeatherIcons as Icon
 import Html exposing (Html, div, node, option, section, select, span, strong, text, textarea)
@@ -16,6 +16,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import List.Extra as List
 import Ports
+import Sheet exposing (Sheet(..))
 import Shift exposing (Shift)
 
 
@@ -49,11 +50,6 @@ type alias Model =
     }
 
 
-type Sheet
-    = NewSheet String
-    | LoadedSheet Api.Sheet
-
-
 type Mode
     = Edit
     | Preview
@@ -69,16 +65,16 @@ init flags =
                 |> NewSheet
 
         mode =
-            if sheetNonEmpty sheet then
-                Preview
+            if Sheet.isEmpty sheet then
+                Edit
 
             else
-                Edit
+                Preview
     in
     ( { sheet = sheet
       , sheetList = Nothing
       , sheetId = Nothing
-      , parsedSheet = sheet |> stringFromSheet |> parseSheet
+      , parsedSheet = sheet |> Sheet.toString |> Sheet.parse
       , shift = Shift.fromInt 0
       , instrument = Guitar
       , chord = Nothing
@@ -86,61 +82,6 @@ init flags =
       }
     , Api.getApiSheets GotSheetList
     )
-
-
-parseSheet : String -> List Token
-parseSheet =
-    let
-        isWordSymbol : Char -> Bool
-        isWordSymbol c =
-            Char.isAlphaNum c || isMusical c || not (isAscii c)
-
-        isAscii : Char -> Bool
-        isAscii char =
-            Char.toCode char <= 0x7F
-
-        isMusical : Char -> Bool
-        isMusical c =
-            List.member c [ '+', '-', '#', '/' ]
-
-        consCompact : Token -> List Token -> List Token
-        consCompact x ys =
-            case ys of
-                t :: ts ->
-                    case ( x, t ) of
-                        ( Lyrics a, Lyrics b ) ->
-                            Lyrics (a ++ b) :: ts
-
-                        _ ->
-                            x :: ys
-
-                [] ->
-                    x :: ys
-    in
-    String.toList
-        >> List.groupWhile (\x y -> xor (isWordSymbol x) (isWordSymbol y) |> not)
-        >> List.map (fromNonEmpty >> String.fromList >> parseToken)
-        >> List.foldr consCompact []
-
-
-parseToken : String -> Token
-parseToken s =
-    s |> parseChord |> Result.map Parsed |> Result.withDefault (Lyrics s)
-
-
-stringFromSheet : Sheet -> String
-stringFromSheet sheet =
-    case sheet of
-        NewSheet s ->
-            s
-
-        LoadedSheet s ->
-            s.content
-
-
-sheetNonEmpty : Sheet -> Bool
-sheetNonEmpty sheet =
-    String.trim (stringFromSheet sheet) /= ""
 
 
 transpose : Shift -> Chord -> Chord
@@ -228,7 +169,7 @@ update msg model =
             ( model, Cmd.none )
 
         SetSheet x ->
-            ( { model | sheet = NewSheet x, parsedSheet = parseSheet x, sheetId = Nothing }, saveSheet x )
+            ( { model | sheet = NewSheet x, parsedSheet = Sheet.parse x, sheetId = Nothing }, saveSheet x )
 
         SetSheetId x ->
             ( { model | sheetId = x }
@@ -277,7 +218,7 @@ updateSheet model sheet =
         Just
             { model
                 | sheet = LoadedSheet sheet
-                , parsedSheet = parseSheet sheet.content
+                , parsedSheet = Sheet.parse sheet.content
                 , mode = Preview
                 , shift = Shift.fromInt 0
             }
@@ -322,7 +263,7 @@ view model =
             [ textarea
                 [ class "text-gray-900 p-3 bg-transparent w-full resize-none min-h-screen"
                 , placeholder "Paste a chord sheet or select one from the menu below."
-                , value (stringFromSheet model.sheet)
+                , value (Sheet.toString model.sheet)
                 , onInput SetSheet
                 , spellcheck False
                 ]
@@ -398,7 +339,7 @@ viewShiftBtns parsedSheet =
 viewModeBtn : Sheet -> Mode -> Html Msg
 viewModeBtn sheet newMode =
     button "green"
-        (newMode == Preview && not (sheetNonEmpty sheet))
+        (newMode == Preview && Sheet.isEmpty sheet)
         [ onClick (SetMode newMode) ]
         [ newMode |> iconFromMode |> Icon.toHtml [] ]
 
@@ -480,13 +421,3 @@ capitalize s =
 
         [] ->
             s
-
-
-fromNonEmpty : ( a, List a ) -> List a
-fromNonEmpty =
-    uncurry (::)
-
-
-uncurry : (a -> b -> c) -> ( a, b ) -> c
-uncurry f ( x, y ) =
-    f x y
