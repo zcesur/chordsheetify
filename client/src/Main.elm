@@ -2,11 +2,12 @@ module Main exposing (main)
 
 import Api
 import Browser
+import Button exposing (button)
 import Chart
 import Chords exposing (Chord(..), Token(..), Voicing, parseChord)
 import Chords.Note as Note
 import FeatherIcons as Icon
-import Html exposing (Html, button, div, node, option, section, select, span, strong, text, textarea)
+import Html exposing (Html, div, node, option, section, select, span, strong, text, textarea)
 import Html.Attributes exposing (class, classList, disabled, placeholder, selected, spellcheck, value)
 import Html.Events exposing (onClick, onInput, onMouseLeave, onMouseOver)
 import Http
@@ -208,7 +209,8 @@ iconFromMode m =
 
 
 type Msg
-    = SetSheet String
+    = Noop
+    | SetSheet String
     | SetSheetId (Maybe Api.SheetId)
     | SetInstrument String
     | SetChord (Maybe Chord)
@@ -222,6 +224,9 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Noop ->
+            ( model, Cmd.none )
+
         SetSheet x ->
             ( { model | sheet = NewSheet x, parsedSheet = parseSheet x, sheetId = Nothing }, saveSheet x )
 
@@ -269,7 +274,13 @@ update msg model =
 updateSheet : Model -> Api.Sheet -> Maybe Model
 updateSheet model sheet =
     if Just sheet.id == model.sheetId then
-        Just { model | sheet = LoadedSheet sheet, parsedSheet = parseSheet sheet.content, mode = Preview }
+        Just
+            { model
+                | sheet = LoadedSheet sheet
+                , parsedSheet = parseSheet sheet.content
+                , mode = Preview
+                , shift = Shift.fromInt 0
+            }
 
     else
         Nothing
@@ -304,12 +315,12 @@ view model =
                 text ""
     in
     node "main"
-        [ class "app min-h-screen p-8 font-sans space-y-4 md:container mx-auto" ]
+        [ class "min-h-screen p-8 font-sans space-y-4 md:container mx-auto" ]
         [ section [ class "sm:flex sm:space-x-4 sm:space-y-0 space-y-4" ] (viewOptions model)
         , section [ class "charts flex flex-wrap" ] (List.map (viewVoicing model) (voicings model)) |> renderIf (not <| List.isEmpty (voicings model))
-        , section [ class "sheet-input border rounded shadow bg-white" ]
+        , section [ class "border rounded shadow bg-white" ]
             [ textarea
-                [ class "sheet-input text-gray-900 p-3 bg-transparent w-full resize-none min-h-screen"
+                [ class "text-gray-900 p-3 bg-transparent w-full resize-none min-h-screen"
                 , placeholder "Paste a chord sheet or select one from the menu below."
                 , value (stringFromSheet model.sheet)
                 , onInput SetSheet
@@ -318,7 +329,7 @@ view model =
                 []
             ]
             |> renderIf (model.mode == Edit)
-        , section [ class "sheet-output text-gray-900 whitespace-pre-wrap p-3" ] (List.map (viewToken model.shift) model.parsedSheet) |> renderIf (model.mode == Preview)
+        , section [ class "preview-area text-gray-900 whitespace-pre-wrap p-3" ] (List.map (viewToken model.shift) model.parsedSheet) |> renderIf (model.mode == Preview)
         ]
 
 
@@ -357,28 +368,52 @@ viewVoicing model ( chord, voicing ) =
     in
     Chart.view (Chords.toString chord) voicing
         |> List.singleton
-        |> div
-            [ classList
-                [ ( "chart", True )
-                , ( "active rounded shadow-outline", active )
-                ]
-            ]
+        |> div [ class "chart", classList [ ( "active rounded shadow-outline", active ) ] ]
+
+
+viewShiftBtns : List Token -> List (Html Msg)
+viewShiftBtns parsedSheet =
+    let
+        color =
+            "blue"
+
+        disabled =
+            parsedSheet |> chordsFromTokens |> List.isEmpty
+
+        btn =
+            button color disabled
+
+        adaptMsg =
+            if disabled then
+                always Noop
+
+            else
+                identity
+    in
+    [ btn [ onClick (Decremented |> adaptMsg) ] [ Icon.minus |> Icon.toHtml [] ]
+    , btn [ onClick (Incremented |> adaptMsg) ] [ Icon.plus |> Icon.toHtml [] ]
+    ]
+
+
+viewModeBtn : Sheet -> Mode -> Html Msg
+viewModeBtn sheet newMode =
+    button "green"
+        (newMode == Preview && not (sheetNonEmpty sheet))
+        [ onClick (SetMode newMode) ]
+        [ newMode |> iconFromMode |> Icon.toHtml [] ]
 
 
 viewOptions : Model -> List (Html Msg)
 viewOptions model =
-    let
-        newMode =
-            toggleMode model.mode
-    in
     [ div [ class "w-full" ] [ viewSheetOptions model ]
-    , div [ class "w-full" ] [ dropdown [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]) ]
+    , div [ class "w-full" ] [ dropdown [ onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]) ]
     , div []
         [ div [ class "flex justify-center space-x-4" ]
-            [ button [ class "shadow rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Decremented ] [ Icon.minus |> Icon.toHtml [] ]
-            , button [ class "shadow rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Incremented ] [ Icon.plus |> Icon.toHtml [] ]
-            , button [ class "shadow rounded py-2 px-3 bg-green-500 border border-green-500 hover:bg-green-600 text-white", onClick (SetMode newMode) ] [ newMode |> iconFromMode |> Icon.toHtml [] ]
-            ]
+            (List.concat
+                [ viewShiftBtns model.parsedSheet
+                , [ viewModeBtn model.sheet (toggleMode model.mode) ]
+                ]
+            )
         ]
     ]
 
@@ -404,11 +439,11 @@ viewSheetOptions { sheet, sheetId, sheetList } =
     in
     case sheetList of
         Nothing ->
-            dropdown [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", disabled True ] [ option [] [ text "Loading sheets..." ] ]
+            dropdown [ disabled True ] [ option [] [ text "Loading sheets..." ] ]
 
         Just sheets ->
             dropdown
-                [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", onInput (String.toInt >> SetSheetId), disabled loading ]
+                [ onInput (String.toInt >> SetSheetId), disabled loading ]
                 (option [ disabled True, selected (sheetId == Nothing) ] [ text "Select a sheet" ] :: List.map (viewSheetOpt sheetId) sheets)
 
 
@@ -421,8 +456,12 @@ viewInstrumentOpt i =
 
 dropdown : List (Html.Attribute msg) -> List (Html msg) -> Html msg
 dropdown attributes children =
+    let
+        cls =
+            "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800 cursor-pointer"
+    in
     div [ class "relative" ]
-        [ select attributes children
+        [ select (class cls :: attributes) children
         , div
             [ class "pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700" ]
             [ Icon.chevronDown |> Icon.withSize 16 |> Icon.toHtml [] ]
