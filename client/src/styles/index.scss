@@ -22,15 +22,9 @@ body {
   &.has-content {
     height: calc(50vh - #{2 * $margin});
   }
-
-  & > textarea {
-    resize: none;
-  }
 }
 
 .sheet-output {
-  color: $fg-color;
-  white-space: pre-wrap;
   strong {
     cursor: pointer;
     &:hover {

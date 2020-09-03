@@ -9,6 +9,7 @@ import Html exposing (Html, button, div, node, option, section, select, span, st
 import Html.Attributes exposing (class, classList, disabled, placeholder, selected, spellcheck, value)
 import Html.Events exposing (onClick, onInput, onMouseLeave, onMouseOver)
 import Http
+import Icons
 import Instrument exposing (Instrument(..))
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -261,7 +262,7 @@ view model =
         [ class "app min-h-screen p-8 font-sans space-y-4 md:container mx-auto" ]
         [ section [ classList [ ( "sheet-input border rounded flex flex-col shadow bg-white", True ), ( "has-content", sheetNonEmpty model.sheet ) ] ]
             [ textarea
-                [ class "sheet-input text-gray-900 flex-1 p-2 m-1 bg-transparent"
+                [ class "sheet-input text-gray-900 flex-1 p-2 m-1 bg-transparent resize-none"
                 , placeholder "Paste a chord sheet or select one from the menu below."
                 , value (stringFromSheet model.sheet)
                 , onInput SetSheet
@@ -269,9 +270,9 @@ view model =
                 ]
                 []
             ]
-        , section [ class "row flex space-x-4" ] (viewOptions model)
+        , section [ class "sm:flex sm:space-x-4 sm:space-y-0 space-y-4" ] (viewOptions model)
         , section [ class "charts flex flex-wrap" ] (viewCharts model) |> renderIfSheetNonEmpty
-        , section [ class "sheet-output" ] (List.map (viewToken model.shift) model.parsedSheet) |> renderIfSheetNonEmpty
+        , section [ class "sheet-output text-gray-900 whitespace-pre-wrap" ] (List.map (viewToken model.shift) model.parsedSheet) |> renderIfSheetNonEmpty
         ]
 
 
@@ -330,12 +331,12 @@ viewChart model ( chord, voicing ) =
 
 viewOptions : Model -> List (Html Msg)
 viewOptions model =
-    [ div [ class "col w-1/3" ] [ div [ class "relative" ] [ viewSheetOptions model, selectArrow ] ]
-    , div [ class "col w-1/3" ] [ div [ class "relative" ] [ select [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800 leading-tight", onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]), selectArrow ] ]
-    , div [ class "col w-1/3" ]
-        [ div [ class "flex space-x-4" ]
-            [ button [ class "shadow appearance-none rounded w-full py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white leading-tight", onClick Decremented ] [ text "-1" ]
-            , button [ class "shadow appearance-none rounded w-full py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white leading-tight", onClick Incremented ] [ text "+1" ]
+    [ div [ class "w-full" ] [ div [ class "relative" ] [ viewSheetOptions model, selectArrow ] ]
+    , div [ class "w-full" ] [ div [ class "relative" ] [ select [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]), selectArrow ] ]
+    , div []
+        [ div [ class "flex justify-center space-x-4" ]
+            [ button [ class "shadow appearance-none rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Decremented ] [ Icons.minus ]
+            , button [ class "shadow appearance-none rounded py-2 px-3 bg-blue-500 border border-blue-500 hover:bg-blue-600 text-white", onClick Incremented ] [ Icons.plus ]
             ]
         ]
     ]
@@ -362,11 +363,11 @@ viewSheetOptions { sheet, sheetId, sheetList } =
     in
     case sheetList of
         Nothing ->
-            select [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800 leading-tight", disabled True ] [ option [] [ text "Loading sheets..." ] ]
+            select [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", disabled True ] [ option [] [ text "Loading sheets..." ] ]
 
         Just sheets ->
             select
-                [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800 leading-tight", onInput (String.toInt >> SetSheetId), disabled loading ]
+                [ class "shadow appearance-none border rounded w-full py-2 px-3 bg-white text-gray-800", onInput (String.toInt >> SetSheetId), disabled loading ]
                 (option [ disabled True, selected (sheetId == Nothing) ] [ text "Select a sheet" ] :: List.map (viewSheetOpt sheetId) sheets)
 
 
