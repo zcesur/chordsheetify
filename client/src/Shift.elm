@@ -1,4 +1,7 @@
-module Shift exposing (Shift, decrement, fromInt, increment, toInt, toString)
+module Shift exposing (Shift, decrement, fromInt, increment, transpose)
+
+import Chords exposing (Chord(..), Token(..))
+import Chords.Note as Note
 
 
 type Shift
@@ -37,11 +40,6 @@ fromInt x =
         fromInt (x - 12)
 
 
-toInt : Shift -> Int
-toInt (Shift x) =
-    x
-
-
-toString : Shift -> String
-toString (Shift x) =
-    String.fromInt x
+transpose : Shift -> Chord -> Chord
+transpose (Shift x) (Chord note quality) =
+    Chord (Note.transpose x note) quality

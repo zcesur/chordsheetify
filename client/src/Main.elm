@@ -84,11 +84,6 @@ init flags =
     )
 
 
-transpose : Shift -> Chord -> Chord
-transpose sh (Chord note quality) =
-    Chord (Note.transpose (Shift.toInt sh) note) quality
-
-
 chartFromChord : Instrument -> Chord -> Maybe ( Chord, Voicing )
 chartFromChord instrument chord =
     let
@@ -121,7 +116,7 @@ voicings : Model -> List ( Chord, Voicing )
 voicings model =
     model.parsedSheet
         |> chordsFromTokens
-        |> List.map (transpose model.shift)
+        |> List.map (Shift.transpose model.shift)
         |> List.filterMap (chartFromChord model.instrument)
 
 
@@ -291,7 +286,7 @@ viewToken sh token =
 viewChord : Shift -> Chord -> Html Msg
 viewChord sh x =
     x
-        |> transpose sh
+        |> Shift.transpose sh
         |> Chords.toString
         |> text
         |> List.singleton
@@ -302,7 +297,7 @@ viewVoicing : Model -> ( Chord, Voicing ) -> Html Msg
 viewVoicing model ( chord, voicing ) =
     let
         hoveredChord =
-            Maybe.map (transpose model.shift >> Chords.toString) model.chord
+            Maybe.map (Shift.transpose model.shift >> Chords.toString) model.chord
 
         active =
             Just (Chords.toString chord) == hoveredChord
