@@ -22,7 +22,7 @@ toIcon : Mode -> Icon.Icon
 toIcon m =
     case m of
         Edit ->
-            Icon.edit2
+            Icon.edit3
 
         Preview ->
             Icon.eye

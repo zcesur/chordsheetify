@@ -308,8 +308,8 @@ viewShiftBtns parsedSheet =
             else
                 identity
     in
-    [ btn [ onClick (Decremented |> adaptMsg) ] [ Icon.minus |> Icon.toHtml [] ]
-    , btn [ onClick (Incremented |> adaptMsg) ] [ Icon.plus |> Icon.toHtml [] ]
+    [ btn [ onClick (Decremented |> adaptMsg) ] [ Icon.chevronsLeft |> Icon.toHtml [] ]
+    , btn [ onClick (Incremented |> adaptMsg) ] [ Icon.chevronsRight |> Icon.toHtml [] ]
     ]
 
 
