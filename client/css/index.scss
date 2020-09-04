@@ -14,18 +14,8 @@ body {
   background-color: $bg-color;
 }
 
-.preview-area {
-  strong {
-    cursor: pointer;
-    &:hover {
-      color: $primary-color;
-    }
-  }
-}
-
 .charts {
   & .chart {
-    max-width: 7rem;
     transition: all .2s ease;
 
     & > svg {

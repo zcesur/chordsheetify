@@ -228,7 +228,9 @@ view model =
     node "main"
         [ class "min-h-screen p-8 font-sans space-y-4 md:container mx-auto" ]
         [ section [ class "sm:flex sm:space-x-4 sm:space-y-0 space-y-4" ] (viewOptions model)
-        , section [ class "charts flex flex-wrap" ] (List.map (viewVoicing model) (voicings model)) |> renderIf (not <| List.isEmpty (voicings model))
+        , section [ class "charts grid gap-2 grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" ]
+            (List.map (viewVoicing model) (voicings model))
+            |> renderIf (voicings model |> List.isEmpty |> not)
         , section [ class "border rounded shadow bg-white" ]
             [ textarea
                 [ class "text-gray-900 p-3 bg-transparent w-full resize-none min-h-screen"
@@ -240,7 +242,9 @@ view model =
                 []
             ]
             |> renderIf (model.mode == Edit)
-        , section [ class "preview-area text-gray-900 whitespace-pre-wrap p-3" ] (List.map (viewToken model.shift) model.parsedSheet) |> renderIf (model.mode == Preview)
+        , section [ class "text-gray-900 whitespace-pre-wrap p-3" ]
+            (List.map (viewToken model.shift) model.parsedSheet)
+            |> renderIf (model.mode == Preview)
         ]
 
 
@@ -265,7 +269,7 @@ viewChord sh x =
         |> Chords.toString
         |> text
         |> List.singleton
-        |> strong [ onMouseOver (HoveredOverChord (Just x)), onMouseLeave (HoveredOverChord Nothing) ]
+        |> strong [ class "cursor-pointer hover:text-blue-500", onMouseOver (HoveredOverChord (Just x)), onMouseLeave (HoveredOverChord Nothing) ]
 
 
 viewVoicing : Model -> ( Chord, Voicing ) -> Html Msg
@@ -279,7 +283,10 @@ viewVoicing model ( chord, voicing ) =
     in
     Chart.view (Chords.toString chord) voicing
         |> List.singleton
-        |> div [ class "chart", classList [ ( "active rounded shadow-outline", active ) ] ]
+        |> div
+            [ class "chart rounded transition duration-100 delay-200 ease-in-out"
+            , classList [ ( "active shadow-outline", active ) ]
+            ]
 
 
 viewShiftBtns : List Token -> List (Html Msg)
