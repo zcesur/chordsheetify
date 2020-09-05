@@ -1,4 +1,4 @@
-module Mode exposing (Mode(..), toIcon, toggle)
+module Mode exposing (Mode(..), toIcon, toString, toggle)
 
 import FeatherIcons as Icon
 
@@ -26,3 +26,13 @@ toIcon m =
 
         Preview ->
             Icon.eye
+
+
+toString : Mode -> String
+toString m =
+    case m of
+        Edit ->
+            "Edit"
+
+        Preview ->
+            "Preview"

@@ -6,8 +6,8 @@ import Button exposing (button)
 import Chart
 import Chords exposing (Chord(..), Token(..), Voicing)
 import FeatherIcons as Icon
-import Html exposing (Html, div, node, option, section, select, span, strong, text, textarea)
-import Html.Attributes exposing (class, classList, disabled, placeholder, selected, spellcheck, value)
+import Html exposing (Html, article, aside, div, main_, option, section, select, span, strong, text, textarea)
+import Html.Attributes exposing (attribute, class, classList, disabled, placeholder, selected, spellcheck, value)
 import Html.Events exposing (onClick, onInput, onMouseLeave, onMouseOver)
 import Http
 import Instrument exposing (Instrument(..))
@@ -225,16 +225,21 @@ view model =
             else
                 text ""
     in
-    node "main"
+    main_
         [ class "min-h-screen p-8 font-sans space-y-4 md:container mx-auto" ]
-        [ section [ class "sm:flex sm:space-x-4 sm:space-y-0 space-y-4" ] (viewOptions model)
-        , section [ class "charts grid gap-2 grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" ]
+        [ section [ role "toolbar", class "sm:flex sm:space-x-4 sm:space-y-0 space-y-4" ] (viewOptions model)
+        , aside
+            [ class "charts grid gap-2 grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" ]
             (List.map (viewVoicing model) (voicings model))
             |> renderIf (voicings model |> List.isEmpty |> not)
-        , section [ class "border rounded shadow bg-white" ]
+        , article [ class "text-gray-900 whitespace-pre-wrap p-3" ]
+            (List.map (viewToken model.shift) model.parsedSheet)
+            |> renderIf (model.mode == Preview)
+        , article [ class "border rounded shadow bg-white" ]
             [ textarea
                 [ class "text-gray-900 p-3 bg-transparent w-full resize-none min-h-screen"
-                , placeholder "Paste a chord sheet or select one from the menu below."
+                , placeholder "Paste a chord sheet or select one from the menu."
+                , ariaLabel "Paste chord sheet"
                 , value (Sheet.toString model.sheet)
                 , onInput ChangedSheet
                 , spellcheck False
@@ -242,9 +247,6 @@ view model =
                 []
             ]
             |> renderIf (model.mode == Edit)
-        , section [ class "text-gray-900 whitespace-pre-wrap p-3" ]
-            (List.map (viewToken model.shift) model.parsedSheet)
-            |> renderIf (model.mode == Preview)
         ]
 
 
@@ -269,7 +271,7 @@ viewChord sh x =
         |> Chords.toString
         |> text
         |> List.singleton
-        |> strong [ class "cursor-pointer hover:text-blue-500", onMouseOver (HoveredOverChord (Just x)), onMouseLeave (HoveredOverChord Nothing) ]
+        |> strong [ role "tooltip", class "cursor-pointer hover:text-blue-500", onMouseOver (HoveredOverChord (Just x)), onMouseLeave (HoveredOverChord Nothing) ]
 
 
 viewVoicing : Model -> ( Chord, Voicing ) -> Html Msg
@@ -308,8 +310,8 @@ viewShiftBtns parsedSheet =
             else
                 identity
     in
-    [ btn [ onClick (Decremented |> adaptMsg) ] [ Icon.chevronsLeft |> Icon.toHtml [] ]
-    , btn [ onClick (Incremented |> adaptMsg) ] [ Icon.chevronsRight |> Icon.toHtml [] ]
+    [ btn [ onClick (Decremented |> adaptMsg), ariaLabel "Transpose left" ] [ Icon.chevronsLeft |> Icon.toHtml [] ]
+    , btn [ onClick (Incremented |> adaptMsg), ariaLabel "Transpose right" ] [ Icon.chevronsRight |> Icon.toHtml [] ]
     ]
 
 
@@ -317,22 +319,20 @@ viewModeBtn : Sheet -> Mode -> Html Msg
 viewModeBtn sheet newMode =
     button "green"
         (newMode == Preview && Sheet.isEmpty sheet)
-        [ onClick (SetMode newMode) ]
+        [ onClick (SetMode newMode), ariaLabel (Mode.toString newMode) ]
         [ newMode |> Mode.toIcon |> Icon.toHtml [] ]
 
 
 viewOptions : Model -> List (Html Msg)
 viewOptions model =
     [ div [ class "w-full" ] [ viewSheetOptions model ]
-    , div [ class "w-full" ] [ dropdown [ onInput SetInstrument ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]) ]
-    , div []
-        [ div [ class "flex justify-center space-x-4" ]
-            (List.concat
-                [ viewShiftBtns model.parsedSheet
-                , [ viewModeBtn model.sheet (Mode.toggle model.mode) ]
-                ]
-            )
-        ]
+    , div [ class "w-full" ] [ dropdown [ onInput SetInstrument, ariaLabel "Select instrument" ] (List.map viewInstrumentOpt [ Guitar, Ukulele ]) ]
+    , div [ class "flex justify-center space-x-4" ]
+        (List.concat
+            [ viewShiftBtns model.parsedSheet
+            , [ viewModeBtn model.sheet (Mode.toggle model.mode) ]
+            ]
+        )
     ]
 
 
@@ -357,11 +357,11 @@ viewSheetOptions { sheet, sheetId, sheetList } =
     in
     case sheetList of
         Nothing ->
-            dropdown [ disabled True ] [ option [] [ text "Loading sheets..." ] ]
+            dropdown [ disabled True, ariaLabel "Select sheet" ] [ option [] [ text "Loading sheets..." ] ]
 
         Just sheets ->
             dropdown
-                [ onInput (String.toInt >> SetSheetId), disabled loading ]
+                [ onInput (String.toInt >> SetSheetId), disabled loading, ariaLabel "Select sheet" ]
                 (option [ disabled True, selected (sheetId == Nothing) ] [ text "Select a sheet" ] :: List.map (viewSheetOpt sheetId) sheets)
 
 
@@ -384,6 +384,16 @@ dropdown attributes children =
             [ class "pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700" ]
             [ Icon.chevronDown |> Icon.withSize 16 |> Icon.toHtml [] ]
         ]
+
+
+role : String -> Html.Attribute msg
+role l =
+    attribute "role" l
+
+
+ariaLabel : String -> Html.Attribute msg
+ariaLabel l =
+    attribute "aria-label" l
 
 
 
