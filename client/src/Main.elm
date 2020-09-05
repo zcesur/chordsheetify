@@ -2,12 +2,13 @@ module Main exposing (main)
 
 import Api
 import Browser
+import Browser.Dom as Dom
 import Button exposing (button)
 import Chart
 import Chords exposing (Chord(..), Token(..), Voicing)
 import FeatherIcons as Icon
 import Html exposing (Html, article, aside, div, main_, option, section, select, span, strong, text, textarea)
-import Html.Attributes exposing (attribute, class, classList, disabled, placeholder, selected, spellcheck, value)
+import Html.Attributes exposing (attribute, class, classList, disabled, id, placeholder, selected, spellcheck, value)
 import Html.Events exposing (onClick, onInput, onMouseLeave, onMouseOver)
 import Http
 import Instrument exposing (Instrument(..))
@@ -18,6 +19,7 @@ import Mode exposing (Mode(..))
 import Ports
 import Sheet exposing (Sheet(..))
 import Shift exposing (Shift)
+import Task
 
 
 
@@ -120,7 +122,7 @@ voicings model =
 
 
 type Msg
-    = Noop
+    = NoOp
     | ChangedSheet String
     | SetSheetId (Maybe Api.SheetId)
     | SetInstrument String
@@ -135,7 +137,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Noop ->
+        NoOp ->
             ( model, Cmd.none )
 
         ChangedSheet x ->
@@ -158,7 +160,16 @@ update msg model =
             ( { model | chord = x }, Cmd.none )
 
         SetMode x ->
-            ( { model | mode = x }, Cmd.none )
+            let
+                cmd =
+                    case x of
+                        Preview ->
+                            Cmd.none
+
+                        Edit ->
+                            Task.attempt (\_ -> NoOp) (Dom.focus editSheetAreaId)
+            in
+            ( { model | mode = x }, cmd )
 
         Decremented ->
             ( { model | shift = Shift.decrement model.shift }, Cmd.none )
@@ -237,9 +248,10 @@ view model =
             |> renderIf (model.mode == Preview)
         , article [ class "border rounded shadow bg-white" ]
             [ textarea
-                [ class "text-gray-900 p-3 bg-transparent w-full resize-none min-h-screen"
+                [ id editSheetAreaId
+                , class "text-gray-900 p-3 bg-transparent w-full resize-none min-h-screen"
                 , placeholder "Paste a chord sheet or select one from the menu."
-                , ariaLabel "Paste chord sheet"
+                , ariaLabel "Edit chord sheet"
                 , value (Sheet.toString model.sheet)
                 , onInput ChangedSheet
                 , spellcheck False
@@ -305,7 +317,7 @@ viewShiftBtns parsedSheet =
 
         adaptMsg =
             if disabled then
-                always Noop
+                always NoOp
 
             else
                 identity
@@ -323,7 +335,7 @@ viewModeBtn sheet newMode =
 
         msg =
             if disabled then
-                Noop
+                NoOp
 
             else
                 SetMode newMode
@@ -381,6 +393,11 @@ viewInstrumentOpt i =
     option
         [ value (Instrument.toString i) ]
         [ text (capitalize (Instrument.toString i)) ]
+
+
+editSheetAreaId : String
+editSheetAreaId =
+    "edit-sheet"
 
 
 dropdown : List (Html.Attribute msg) -> List (Html msg) -> Html msg
