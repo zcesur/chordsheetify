@@ -297,10 +297,7 @@ viewVoicing model ( chord, voicing ) =
     in
     Chart.view (Chords.toString chord) voicing
         |> List.singleton
-        |> div
-            [ class "chart rounded transition duration-100 delay-200 ease-in-out"
-            , classList [ ( "active shadow-outline", active ) ]
-            ]
+        |> div [ classList [ ( "chart", True ), ( "active rounded shadow-outline", active ) ] ]
 
 
 viewShiftBtns : List Token -> List (Html Msg)
