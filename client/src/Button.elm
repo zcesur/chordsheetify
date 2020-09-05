@@ -32,4 +32,4 @@ button color disabled attributes children =
             , "border-" ++ color_ ++ "-500"
             ]
     in
-    Html.button ((commonCls ++ condCls |> mkClass |> class) :: attributes) children
+    Html.button ((commonCls ++ condCls |> mkClass |> class) :: Html.Attributes.disabled disabled :: attributes) children

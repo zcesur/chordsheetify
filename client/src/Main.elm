@@ -317,9 +317,20 @@ viewShiftBtns parsedSheet =
 
 viewModeBtn : Sheet -> Mode -> Html Msg
 viewModeBtn sheet newMode =
+    let
+        disabled =
+            newMode == Preview && Sheet.isEmpty sheet
+
+        msg =
+            if disabled then
+                Noop
+
+            else
+                SetMode newMode
+    in
     button "green"
-        (newMode == Preview && Sheet.isEmpty sheet)
-        [ onClick (SetMode newMode), ariaLabel (Mode.toString newMode) ]
+        disabled
+        [ onClick msg, ariaLabel (Mode.toString newMode) ]
         [ newMode |> Mode.toIcon |> Icon.toHtml [] ]
 
 
