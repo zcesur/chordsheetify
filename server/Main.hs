@@ -26,7 +26,7 @@ initConnectionPool connStr =
   createPool (connectPostgreSQL connStr) close 2 60 10
 
 defaultPort :: Port
-defaultPort = 3000
+defaultPort = 3002
 
 defaultConnStr :: String
 defaultConnStr = "postgresql://chordsheetify:chordsheetify@localhost"
